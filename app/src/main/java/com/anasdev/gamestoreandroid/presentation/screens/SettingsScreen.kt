@@ -1,5 +1,6 @@
 package com.anasdev.gamestoreandroid.presentation.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.anasdev.gamestoreandroid.BuildConfig
 import com.anasdev.gamestoreandroid.data.remote.KtorClient
 import com.anasdev.gamestoreandroid.presentation.state.GameStoreViewModel
 
@@ -48,7 +50,7 @@ fun SettingsScreen(
     viewModel: GameStoreViewModel,
     onRequireLogin: () -> Unit,
     onOpenAdminDashboard: () -> Unit = {},
-    modifier: Modifier = Modifier
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     val token by viewModel.tokenFlow.collectAsState(initial = null)
     val role by viewModel.roleFlow.collectAsState(initial = null)
@@ -266,27 +268,29 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Backend Server", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        text = KtorClient.BASE_URL,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+                if (BuildConfig.DEBUG) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Backend Server (Debug)", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = KtorClient.BASE_URL,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("App Version", style = MaterialTheme.typography.bodyMedium)
-                    Text("1.0.0 (Release 37)", style = MaterialTheme.typography.bodyMedium)
+                    Text("v${BuildConfig.VERSION_NAME} ", style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }

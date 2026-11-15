@@ -24,9 +24,9 @@ object KtorClient {
         }
 
         install(HttpTimeout) {
-            requestTimeoutMillis = 15_000
-            connectTimeoutMillis = 10_000
-            socketTimeoutMillis = 15_000
+            requestTimeoutMillis = 60_000L // Wait up to 60 seconds
+            connectTimeoutMillis = 60_000L
+            socketTimeoutMillis = 60_000L
         }
 
         install(ContentNegotiation) {

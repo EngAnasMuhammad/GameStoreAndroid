@@ -38,7 +38,7 @@ jobs:
           fi
           echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/release.jks"
 
-      - name: Build Signed Release APK & Bundle
+      - name: Build Signed Release APK
         env:
           KEYSTORE_FILE: ${{ github.workspace }}/release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -46,7 +46,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
           BASE_URL: ${{ secrets.BASE_URL }}
-        run: ./gradlew assembleRelease bundleRelease
+        run: ./gradlew assembleRelease
 
       - name: Clean Up Keystore
         if: always()
@@ -55,18 +55,14 @@ jobs:
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-binaries
-          path: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
+          name: release-apk
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
+          files: app/build/outputs/apk/release/*.apk
           generate_release_notes: true
           draft: false
           prerelease: false

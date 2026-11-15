@@ -1,4 +1,4 @@
-# 🎮 GameStore Android
+# 🎮 GameTrade Android
 
 [![Android CI](https://github.com/EngAnasMuhammad/GameStoreAndroid/actions/workflows/ci.yml/badge.svg)](https://github.com/EngAnasMuhammad/GameStoreAndroid/actions/workflows/ci.yml)
 [![Kotlin Version](https://img.shields.io/badge/Kotlin-2.0.21-purple.svg?logo=kotlin)](https://kotlinlang.org)
@@ -6,7 +6,7 @@
 [![Ktor Client](https://img.shields.io/badge/Ktor%20Client-3.0.1-orange.svg?logo=ktor)](https://ktor.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A modern, reactive digital game storefront and key distribution Android application built with **100% Jetpack Compose (Material 3)** and **Kotlin**. Powered by **Ktor Client**, **Android Credential Manager**, and **DataStore Preferences**, GameStore provides an end-to-end shopping experience featuring atomic cart key reservations, instant checkout, order history with one-tap key copying, and an administrative dashboard for catalog and key inventory management.
+A modern, reactive digital game storefront and key distribution Android application built with **100% Jetpack Compose (Material 3)** and **Kotlin**. Powered by **Ktor Client**, **Android Credential Manager**, and **DataStore Preferences**, GameTrade provides an end-to-end shopping experience featuring atomic cart key reservations, instant checkout, order history with one-tap key copying, and an administrative dashboard for catalog and key inventory management.
 
 ---
 
@@ -81,11 +81,11 @@ UI Layer (Compose Material 3) ──► ViewModel (StateFlow / UDF) ──► Re
 - **Android Studio**: Ladybug (2024.2.1) or Meerkat (2024.3.1)+
 - **JDK**: Version 17
 - **Android SDK**: Compile SDK 35+, Minimum SDK 26 (Android 8.0 Oreo)
-- **Companion Backend**: A running instance of the Game Store Ktor backend.
+- **Companion Backend**: A running instance of the Game Trade Ktor backend.
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/anasdev/GameStoreAndroid.git
+git clone https://github.com/EngAnasMuhammad/GameStoreAndroid.git
 cd GameStoreAndroid
 ```
 
@@ -128,7 +128,7 @@ The project includes production-ready [GitHub Actions](.github/workflows/) workf
 
 ### 1. Automated Workflows
 - **`ci.yml`**: Runs on every push and pull request to `main`. Validates code formatting, lint checks, unit tests, and compiles the debug APK.
-- **`release.yml`**: Automatically triggers when a version tag (e.g., `v1.0.0`) is pushed or dispatched manually. It signs the release build with your keystore, bundles both APK and AAB, and publishes a new **GitHub Release** with auto-generated release notes.
+- **`release.yml`**: Automatically triggers when a version tag (e.g., `v1.1.0`) is pushed or dispatched manually. It signs the release build with your keystore, builds the standalone APK, and publishes a new **GitHub Release** with the APK attached and auto-generated release notes.
 
 ### 2. Setting Up GitHub Secrets
 To enable automated release signing, configure the following secrets in your GitHub repository (**Settings > Secrets and variables > Actions**):

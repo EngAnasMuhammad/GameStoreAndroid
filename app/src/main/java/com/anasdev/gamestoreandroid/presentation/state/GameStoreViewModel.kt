@@ -35,6 +35,19 @@ class GameStoreViewModel(
     val tokenFlow = tokenManager.tokenFlow
     val roleFlow = tokenManager.roleFlow
 
+    private fun sanitizeErrorMessage(throwable: Throwable, fallback: String): String {
+        val raw = throwable.message.orEmpty()
+        return when {
+            raw.contains("resolve host", ignoreCase = true) ||
+            raw.contains("connect", ignoreCase = true) ||
+            raw.contains("timeout", ignoreCase = true) ||
+            raw.contains("onrender.com", ignoreCase = true) ||
+            raw.contains("http", ignoreCase = true) ||
+            raw.isBlank() -> fallback
+            else -> raw
+        }
+    }
+
     init {
         loadGames()
         viewModelScope.launch {
@@ -54,7 +67,12 @@ class GameStoreViewModel(
                     _uiState.update { it.copy(isLoading = false, games = gameList) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = sanitizeErrorMessage(error, "Unable to load games. Please check your network connection.")
+                        )
+                    }
                 }
         }
     }
@@ -70,7 +88,12 @@ class GameStoreViewModel(
                     loadOrders()
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = sanitizeErrorMessage(error, "Sign-in failed. Please verify your credentials.")
+                        )
+                    }
                 }
         }
     }
@@ -86,7 +109,12 @@ class GameStoreViewModel(
                     loadOrders()
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = sanitizeErrorMessage(error, "Registration failed. Please check your information and try again.")
+                        )
+                    }
                 }
         }
     }
@@ -102,7 +130,12 @@ class GameStoreViewModel(
                     loadOrders()
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = sanitizeErrorMessage(error, "Google authentication failed. Please try again.")
+                        )
+                    }
                 }
         }
     }
@@ -127,7 +160,12 @@ class GameStoreViewModel(
                     _uiState.update { it.copy(isLoading = false,cartItems = cartItems) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false,errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = sanitizeErrorMessage(error, "Unable to load cart. Please try again.")
+                        )
+                    }
                 }
         }
     }
@@ -142,7 +180,12 @@ class GameStoreViewModel(
                     loadGames()
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false,errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = sanitizeErrorMessage(error, "Unable to reserve game key. Item may be out of stock.")
+                        )
+                    }
                 }
         }
     }
@@ -157,7 +200,12 @@ class GameStoreViewModel(
                     loadGames()
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false,errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = sanitizeErrorMessage(error, "Checkout failed. Please review your cart and try again.")
+                        )
+                    }
                 }
         }
     }
@@ -169,7 +217,12 @@ class GameStoreViewModel(
                     _uiState.update { it.copy(isLoading = false,orders = ordersList) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false,errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = sanitizeErrorMessage(error, "Unable to load order history. Please try again.")
+                        )
+                    }
                 }
         }
     }
@@ -196,7 +249,7 @@ class GameStoreViewModel(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = "Image upload failed: ${uploadResult.exceptionOrNull()?.message}"
+                            errorMessage = "Image upload failed. Please try a different image or try again."
                         )
                     }
                     return@launch
@@ -217,7 +270,12 @@ class GameStoreViewModel(
                     loadGames()
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = sanitizeErrorMessage(error, "Failed to create game. Please check your input and try again.")
+                        )
+                    }
                 }
         }
     }
@@ -236,7 +294,12 @@ class GameStoreViewModel(
                     loadGames()
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = sanitizeErrorMessage(error, "Failed to upload keys. Please try again.")
+                        )
+                    }
                 }
         }
     }
@@ -257,7 +320,7 @@ class GameStoreViewModel(
                     _uiState.update {
                         it.copy(
                             isUploadingImage = false,
-                            errorMessage = error.message
+                            errorMessage = sanitizeErrorMessage(error, "Image upload failed. Please try again.")
                         )
                     }
                 }

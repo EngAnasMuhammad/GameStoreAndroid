@@ -122,7 +122,7 @@ fun AuthDialog(
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp)
                 )
-                Text("Sign In to GameStore", fontWeight = FontWeight.Bold)
+                Text("Sign In to GameTrade", fontWeight = FontWeight.Bold)
             }
         },
         text = {

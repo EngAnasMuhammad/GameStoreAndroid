@@ -69,7 +69,7 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                 title = {
                     Text(
                         text = when (selectedTab) {
-                            0 -> "GameStore"
+                            0 -> "GameTrade"
                             1 -> "Orders"
                             else -> "Settings"
                         },
@@ -117,7 +117,21 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                             }
                         }
                         1 -> {
-                            // Profile Icon on Orders tab
+                            // Orders Tab: Refresh action
+                            IconButton(onClick = {
+                                if (isLoggedIn) {
+                                    viewModel.loadOrders()
+                                } else {
+                                    showAuthDialog = true
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
+                                    contentDescription = "Refresh Orders"
+                                )
+                            }
+
+                            // Profile Icon
                             IconButton(onClick = {
                                 if (isLoggedIn) {
                                     selectedTab = 2
