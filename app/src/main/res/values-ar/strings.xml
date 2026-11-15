@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GameTrade</string>
+
+    <!-- Navigation Titles & Tabs -->
+    <string name="nav_store">المتجر</string>
+    <string name="nav_orders">الطلبات</string>
+    <string name="nav_settings">الإعدادات</string>
+
+    <!-- Theme & Language Settings -->
+    <string name="settings_appearance">المظهر واللغة</string>
+    <string name="settings_theme">وضع المظهر</string>
+    <string name="settings_language">لغة التطبيق</string>
+    <string name="theme_system">الوضع الافتراضي للنظام</string>
+    <string name="theme_light">فاتح</string>
+    <string name="theme_dark">داكن</string>
+    <string name="lang_system">الافتراضي للجهاز</string>
+    <string name="lang_english">English (الإنجليزية)</string>
+    <string name="lang_arabic">العربية</string>
+
+    <!-- Settings Dialog Titles -->
+    <string name="dialog_select_theme">اختر المظهر</string>
+    <string name="dialog_select_language">اختر اللغة</string>
+    <string name="action_cancel">إلغاء</string>
+
+    <!-- Settings Screen Labels & Actions -->
+    <string name="logged_in">تم تسجيل الدخول</string>
+    <string name="guest_user">مستخدم زائر</string>
+    <string name="role_admin">مسؤول</string>
+    <string name="role_customer">عميل</string>
+    <string name="sign_in_hint">سجّل الدخول لشراء الألعاب وعرض المفاتيح</string>
+    <string name="action_log_out">تسجيل الخروج</string>
+    <string name="action_sign_in_or_register">تسجيل الدخول أو إنشاء حساب</string>
+
+    <!-- Admin Section -->
+    <string name="admin_dashboard">لوحة تحكم المسؤول</string>
+    <string name="admin_dashboard_desc">نشر الألعاب ورفع مفاتيح التفعيل</string>
+
+    <!-- Admin Dashboard Sheet / Dialogs -->
+    <string name="admin_tab_add_game">إضافة لعبة جديدة</string>
+    <string name="admin_tab_upload_keys">رفع المفاتيح</string>
+    <string name="admin_cover_image_label">غلاف اللعبة (اختياري)</string>
+    <string name="admin_ready_to_upload">جاهزة للرفع</string>
+    <string name="admin_remove_image">إزالة</string>
+    <string name="admin_change_image">تغيير الصورة</string>
+    <string name="admin_tap_to_choose_image">اضغط لاختيار غلاف اللعبة</string>
+    <string name="admin_image_format_hint">PNG أو JPG أو WEBP (يتم الضغط تلقائياً عند الإرسال)</string>
+    <string name="admin_field_title">العنوان *</string>
+    <string name="admin_field_genre">النوع * (مثال: أكشن RPG، استراتيجية)</string>
+    <string name="admin_field_release_date">تاريخ الإصدار * (YYYY-MM-DD)</string>
+    <string name="admin_error_date_format">يجب أن تكون الصيغة YYYY-MM-DD</string>
+    <string name="admin_field_price">السعر بالدولار * (مثال: 59.99)</string>
+    <string name="admin_field_description">الوصف (اختياري)</string>
+    <string name="admin_action_publish_game">نشر اللعبة</string>
+    <string name="admin_publishing_with_image">جارٍ رفع الصورة وإنشاء اللعبة...</string>
+    <string name="admin_publishing">جارٍ إنشاء اللعبة...</string>
+
+    <!-- Admin Upload Keys Form -->
+    <string name="admin_select_target_game">اختر اللعبة المستهدفة</string>
+    <string name="admin_choose_game">اختر اللعبة</string>
+    <string name="admin_tap_to_select_game">اضغط لاختيار لعبة</string>
+    <string name="admin_no_games_published">لم يتم نشر ألعاب بعد</string>
+    <string name="admin_activation_keys_title">مفاتيح التفعيل</string>
+    <string name="admin_paste_keys_label">الصق المفاتيح (مفصولة بأسطر أو فواصل)</string>
+    <string name="admin_enter_at_least_one_key">أدخل مفتاح تفعيل واحد على الأقل</string>
+    <string name="admin_keys_detected">تم اكتشاف %1$d مفتاح صالح</string>
+    <string name="admin_action_upload_keys">رفع المفاتيح</string>
+    <string name="admin_action_upload_n_keys">رفع %1$d مفتاح</string>
+    <string name="admin_uploading_keys">جارٍ رفع المفاتيح...</string>
+
+    <!-- System Info Section -->
+    <string name="system_info_title">معلومات الاتصال والنظام</string>
+    <string name="backend_environment">بيئة الخادم</string>
+    <string name="backend_render_prod">واجهة Render الإنتاجية</string>
+    <string name="app_version">إصدار التطبيق</string>
+
+    <!-- Auth Dialog -->
+    <string name="auth_dialog_title">تسجيل الدخول إلى GameTrade</string>
+    <string name="auth_dialog_description">سجّل الدخول بحساب Google لحجز مفاتيح الألعاب، وإتمام عمليات الشراء، والوصول إلى سجل طلباتك.</string>
+    <string name="auth_continue_with_google">المتابعة باستخدام Google</string>
+    <string name="auth_connecting">جارٍ الاتصال...</string>
+    <string name="auth_secured_by_credential_manager">محمي بواسطة إدارة بيانات اعتماد Android</string>
+
+    <!-- Store Screen -->
+    <string name="store_no_games">لا توجد ألعاب متوفرة حالياً.</string>
+    <string name="store_reload">إعادة تحميل المتجر</string>
+    <string name="store_sold_out">نفدت الكمية</string>
+    <string name="store_out_of_stock">غير متوفر</string>
+    <string name="store_stock_count">المخزون: %1$d</string>
+    <string name="store_add_to_cart">أضف إلى السلة</string>
+    <string name="store_login_to_buy">سجّل الدخول للشراء</string>
+
+    <!-- Cart Sheet -->
+    <string name="cart_title">سلة التسوق</string>
+    <string name="cart_game_count_single">لعبة واحدة</string>
+    <string name="cart_game_count_plural">%1$d ألعاب</string>
+    <string name="cart_reservation_notice">يتم حجز المفاتيح مؤقتاً لك لمدة 15 دقيقة.</string>
+    <string name="cart_sign_in_required_title">يجب تسجيل الدخول</string>
+    <string name="cart_sign_in_required_desc">يرجى تسجيل الدخول لعرض المفاتيح المحجوزة في سلتك وإتمام عملية الشراء.</string>
+    <string name="cart_empty_title">سلتك فارغة</string>
+    <string name="cart_empty_desc">تصفح المتجر واحجز مفتاح لعبتك قبل نفاد الكمية!</string>
+    <string name="cart_total_amount">المبلغ الإجمالي</string>
+    <string name="cart_processing">جارٍ المعالجة...</string>
+    <string name="cart_checkout_button">إتمام الشراء وكشف المفاتيح</string>
+    <string name="cart_key_locked_badge">مفتاح #%1$d</string>
+
+    <!-- Game Details Sheet -->
+    <string name="details_item_locked_banner">تم حجز المفتاح وإضافته إلى سلتك لمدة 15 دقيقة!</string>
+    <string name="details_available_stock">المخزون المتوفر: %1$d</string>
+    <string name="details_adding">جارٍ الإضافة...</string>
+    <string name="details_added_success">تمت الإضافة إلى السلة!</string>
+    <string name="details_about_game">حول هذه اللعبة</string>
+    <string name="details_no_description">لا يوجد وصف متاح لهذه اللعبة.</string>
+
+    <!-- Orders Screen -->
+    <string name="orders_sign_in_title">سجّل الدخول لعرض الطلبات</string>
+    <string name="orders_sign_in_desc">يتم حفظ مفاتيح الألعاب المشتراة وإيصالات الطلبات في حسابك.</string>
+    <string name="orders_empty_title">لا توجد طلبات سابقة</string>
+    <string name="orders_empty_desc">لم تقم بإتمام أي عمليات شراء بعد.</string>
+    <string name="orders_refresh">تحديث الطلبات</string>
+    <string name="orders_order_number">طلب #%1$s</string>
+    <string name="orders_purchased_keys">المفاتيح المشتراة (%1$d):</string>
+    <string name="orders_copy_key">نسخ المفتاح</string>
+    <string name="orders_key_copied_snackbar">تم نسخ المفتاح إلى الحافظة!</string>
+
+    <!-- Purchase Receipt Dialog -->
+    <string name="receipt_title">تم الشراء بنجاح!</string>
+    <string name="receipt_total_paid">المجموع المدفوع: %1$.2f$</string>
+    <string name="receipt_activation_keys">مفاتيح التفعيل الخاصة بك:</string>
+    <string name="action_done">تم</string>
+
+    <!-- Notice Dialog & Cart Details -->
+    <string name="notice_sign_in">إشعار تسجيل الدخول</string>
+    <string name="cart_expires_in_minutes">ينتهي خلال ~%1$d د</string>
+    <string name="cart_expiring_soon">ينتهي قريباً (أقل من دقيقة)</string>
+    <string name="cart_expired">منتهي الصلاحية</string>
+    <string name="cart_locked_until">محجوز حتى: %1$s</string>
+    <string name="cd_account">الحساب</string>
+</resources>

@@ -1,6 +1,5 @@
 package com.anasdev.gamestoreandroid.presentation.components
 
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.LockClock
 import androidx.compose.material.icons.rounded.RemoveShoppingCart
@@ -30,45 +30,67 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.anasdev.gamestoreandroid.R
 import com.anasdev.gamestoreandroid.domain.model.LockedCartItemResponse
 import java.time.Instant
 import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
-fun formatLockedUntil(lockedUntilStr: String): String {
-    return try {
-        // Try parsing ISO-8601 (e.g. 2026-11-14T10:15:30Z or with offset)
-        val targetInstant = try {
-            OffsetDateTime.parse(lockedUntilStr).toInstant()
-        } catch (_: Exception) {
-            Instant.parse(lockedUntilStr)
-        }
-        val now = Instant.now()
-        val minutesLeft = ChronoUnit.MINUTES.between(now, targetInstant)
+private sealed interface ExpiryState {
+    data class Minutes(val count: Long) : ExpiryState
+    data object ExpiringSoon : ExpiryState
+    data object Expired : ExpiryState
+    data class Fallback(val time: String) : ExpiryState
+}
 
-        when {
-            minutesLeft > 1 -> "Expires in ~${minutesLeft}m"
-            minutesLeft in 0..1 -> "Expiring soon (<1m)"
-            else -> "Expired"
+/**
+ * Safely formats the ISO-8601 `lockedUntil` timestamp into localized countdown text.
+ */
+@Composable
+private fun formatLockedUntil(lockedUntilStr: String): String {
+    val state = remember(lockedUntilStr) {
+        try {
+            val targetInstant = try {
+                OffsetDateTime.parse(lockedUntilStr).toInstant()
+            } catch (_: Exception) {
+                Instant.parse(lockedUntilStr)
+            }
+            val now = Instant.now()
+            val minutesLeft = ChronoUnit.MINUTES.between(now, targetInstant)
+
+            when {
+                minutesLeft > 1 -> ExpiryState.Minutes(minutesLeft)
+                minutesLeft in 0..1 -> ExpiryState.ExpiringSoon
+                else -> ExpiryState.Expired
+            }
+        } catch (_: Exception) {
+            val timeDisplay = if (lockedUntilStr.contains("T")) {
+                lockedUntilStr.substringAfter("T").take(5)
+            } else {
+                lockedUntilStr
+            }
+            ExpiryState.Fallback(timeDisplay)
         }
-    } catch (_: Exception) {
-        // Fallback for simple date-time strings
-        if (lockedUntilStr.contains("T")) {
-            "Locked until: " + lockedUntilStr.substringAfter("T").take(5)
-        } else {
-            "Locked until: $lockedUntilStr"
-        }
+    }
+
+    return when (state) {
+        is ExpiryState.Minutes -> stringResource(R.string.cart_expires_in_minutes, state.count)
+        is ExpiryState.ExpiringSoon -> stringResource(R.string.cart_expiring_soon)
+        is ExpiryState.Expired -> stringResource(R.string.cart_expired)
+        is ExpiryState.Fallback -> stringResource(R.string.cart_locked_until, state.time)
     }
 }
 
@@ -78,8 +100,10 @@ fun CartSheet(
     cartItems: List<LockedCartItemResponse>,
     isLoggedIn: Boolean,
     isLoading: Boolean,
+    removingCartItemIds: Set<String> = emptySet(),
     onDismiss: () -> Unit,
     onCheckout: () -> Unit,
+    onRemoveItem: (String) -> Unit = {},
     onLoginClick: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -117,7 +141,7 @@ fun CartSheet(
                             modifier = Modifier.size(26.dp)
                         )
                         Text(
-                            text = "Your Cart",
+                            text = stringResource(R.string.cart_title),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -129,7 +153,11 @@ fun CartSheet(
                             color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Text(
-                                text = "${cartItems.size} ${if (cartItems.size == 1) "game" else "games"}",
+                                text = if (cartItems.size == 1) {
+                                    stringResource(R.string.cart_game_count_single)
+                                } else {
+                                    stringResource(R.string.cart_game_count_plural, cartItems.size)
+                                },
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -159,7 +187,7 @@ fun CartSheet(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Keys are temporarily locked for you for 15 minutes.",
+                            text = stringResource(R.string.cart_reservation_notice),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -190,12 +218,12 @@ fun CartSheet(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "Sign In Required",
+                                text = stringResource(R.string.cart_sign_in_required_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Please sign in to view locked keys in your cart and complete checkout.",
+                                text = stringResource(R.string.cart_sign_in_required_desc),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -203,7 +231,7 @@ fun CartSheet(
                                 onClick = onLoginClick,
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Sign In / Register")
+                                Text(stringResource(R.string.action_sign_in_or_register))
                             }
                         }
                     }
@@ -227,12 +255,12 @@ fun CartSheet(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
                             Text(
-                                text = "Your Cart is Empty",
+                                text = stringResource(R.string.cart_empty_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Browse the store and reserve a game key before stock runs out!",
+                                text = stringResource(R.string.cart_empty_desc),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -250,7 +278,17 @@ fun CartSheet(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(cartItems, key = { it.keyId }) { item ->
-                            CartItemRow(item = item)
+                            val countForGame = cartItems.count { it.gameId == item.gameId }
+                            val indexForGame = if (countForGame > 1) {
+                                cartItems.filter { it.gameId == item.gameId }.indexOf(item) + 1
+                            } else null
+
+                            CartItemRow(
+                                item = item,
+                                isRemoving = item.keyId in removingCartItemIds,
+                                onRemove = { onRemoveItem(item.keyId) },
+                                keyIndex = indexForGame
+                            )
                         }
                     }
                 }
@@ -272,7 +310,7 @@ fun CartSheet(
                     ) {
                         Column {
                             Text(
-                                text = "Total Amount",
+                                text = stringResource(R.string.cart_total_amount),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -300,7 +338,7 @@ fun CartSheet(
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Processing...")
+                                Text(stringResource(R.string.cart_processing))
                             } else {
                                 Icon(
                                     imageVector = Icons.Rounded.CheckCircle,
@@ -308,7 +346,7 @@ fun CartSheet(
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Checkout & Reveal Keys", fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.cart_checkout_button), fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -323,7 +361,10 @@ fun CartSheet(
 @Composable
 fun CartItemRow(
     item: LockedCartItemResponse,
-    modifier: Modifier = Modifier
+    isRemoving: Boolean,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
+    keyIndex: Int? = null
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -335,46 +376,86 @@ fun CartItemRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.gameTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = item.gameTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (keyIndex != null) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Text(
+                                text = stringResource(R.string.cart_key_locked_badge, keyIndex),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.LockClock,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.tertiary
-                    )
                     Text(
-                        text = formatLockedUntil(item.lockedUntil),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        fontWeight = FontWeight.Medium
+                        text = "$${"%.2f".format(item.price)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
                     )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.LockClock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = formatLockedUntil(item.lockedUntil),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = "$${"%.2f".format(item.price)}",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            IconButton(
+                onClick = onRemove,
+                enabled = !isRemoving
+            ) {
+                if (isRemoving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Rounded.DeleteOutline,
+                        contentDescription = stringResource(R.string.admin_remove_image),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
         }
     }
 }

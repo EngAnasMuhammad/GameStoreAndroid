@@ -21,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -44,9 +43,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.anasdev.gamestoreandroid.R
 import com.anasdev.gamestoreandroid.domain.model.OrderItemReceiptDto
 import com.anasdev.gamestoreandroid.domain.model.OrderReceiptResponse
 import com.anasdev.gamestoreandroid.presentation.state.GameStoreViewModel
@@ -83,6 +84,7 @@ fun OrdersScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val copiedMessage = stringResource(R.string.orders_key_copied_snackbar)
 
     // Auto-load orders if authenticated
     LaunchedEffect(isLoggedIn) {
@@ -118,12 +120,12 @@ fun OrdersScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "Sign In to View Orders",
+                                text = stringResource(R.string.orders_sign_in_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Your purchased game keys and order receipts are saved to your account.",
+                                text = stringResource(R.string.orders_sign_in_desc),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -131,7 +133,7 @@ fun OrdersScreen(
                                 onClick = onRequireLogin,
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Sign In / Register")
+                                Text(stringResource(R.string.action_sign_in_or_register))
                             }
                         }
                     }
@@ -155,19 +157,19 @@ fun OrdersScreen(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
                             Text(
-                                text = "No Orders Found",
+                                text = stringResource(R.string.orders_empty_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "You haven't completed any purchases yet.",
+                                text = stringResource(R.string.orders_empty_desc),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Button(onClick = { viewModel.loadOrders() }) {
                                 Icon(Icons.Rounded.Refresh, contentDescription = null)
                                 Spacer(modifier = Modifier.size(8.dp))
-                                Text("Refresh Orders")
+                                Text(stringResource(R.string.orders_refresh))
                             }
                         }
                     }
@@ -188,7 +190,7 @@ fun OrdersScreen(
                                     clipboard.setPrimaryClip(clip)
 
                                     scope.launch {
-                                        snackbarHostState.showSnackbar("Key copied to clipboard!")
+                                        snackbarHostState.showSnackbar(copiedMessage)
                                     }
                                 }
                             )
@@ -239,7 +241,7 @@ fun OrderCard(
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "Order #${order.orderId.take(8).uppercase()}",
+                        text = stringResource(R.string.orders_order_number, order.orderId.take(8).uppercase()),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -274,7 +276,7 @@ fun OrderCard(
 
             // Purchased Game Keys List
             Text(
-                text = "Purchased Keys (${order.items.size}):",
+                text = stringResource(R.string.orders_purchased_keys, order.items.size),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -319,37 +321,24 @@ fun KeyItemRow(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Key,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = item.keyCode,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+                Text(
+                    text = item.keyCode,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
 
             IconButton(
-                onClick = { onCopyKey(item.keyCode) },
-                modifier = Modifier.size(36.dp)
+                onClick = { onCopyKey(item.keyCode) }
             ) {
                 Icon(
                     imageVector = Icons.Rounded.ContentCopy,
-                    contentDescription = "Copy Key",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
+                    contentDescription = stringResource(R.string.orders_copy_key),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

@@ -1,3 +1,138 @@
 <resources>
     <string name="app_name">GameTrade</string>
+
+    <!-- Navigation Titles & Tabs -->
+    <string name="nav_store">Store</string>
+    <string name="nav_orders">Orders</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Theme & Language Settings -->
+    <string name="settings_appearance">Appearance &amp; Language</string>
+    <string name="settings_theme">Theme Mode</string>
+    <string name="settings_language">App Language</string>
+    <string name="theme_system">System Default</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="lang_system">System Default</string>
+    <string name="lang_english">English</string>
+    <string name="lang_arabic">العربية (Arabic)</string>
+
+    <!-- Settings Dialog Titles -->
+    <string name="dialog_select_theme">Select Theme</string>
+    <string name="dialog_select_language">Select Language</string>
+    <string name="action_cancel">Cancel</string>
+
+    <!-- Settings Screen Labels & Actions -->
+    <string name="logged_in">Logged In</string>
+    <string name="guest_user">Guest User</string>
+    <string name="role_admin">ADMIN</string>
+    <string name="role_customer">CUSTOMER</string>
+    <string name="sign_in_hint">Sign in to purchase games and view keys</string>
+    <string name="action_log_out">Log Out</string>
+    <string name="action_sign_in_or_register">Sign In or Register</string>
+
+    <!-- Admin Section -->
+    <string name="admin_dashboard">Admin Dashboard</string>
+    <string name="admin_dashboard_desc">Publish games &amp; upload activation keys</string>
+
+    <!-- Admin Dashboard Sheet / Dialogs -->
+    <string name="admin_tab_add_game">Add New Game</string>
+    <string name="admin_tab_upload_keys">Upload Keys</string>
+    <string name="admin_cover_image_label">Game Cover Image (Optional)</string>
+    <string name="admin_ready_to_upload">Ready to upload</string>
+    <string name="admin_remove_image">Remove</string>
+    <string name="admin_change_image">Change Image</string>
+    <string name="admin_tap_to_choose_image">Tap to choose cover image</string>
+    <string name="admin_image_format_hint">PNG, JPG, or WEBP (auto-compressed on submit)</string>
+    <string name="admin_field_title">Title *</string>
+    <string name="admin_field_genre">Genre * (e.g. Action RPG, Strategy)</string>
+    <string name="admin_field_release_date">Release Date * (YYYY-MM-DD)</string>
+    <string name="admin_error_date_format">Format must be YYYY-MM-DD</string>
+    <string name="admin_field_price">Price in USD * (e.g. 59.99)</string>
+    <string name="admin_field_description">Description (Optional)</string>
+    <string name="admin_action_publish_game">Publish Game</string>
+    <string name="admin_publishing_with_image">Uploading &amp; Creating...</string>
+    <string name="admin_publishing">Creating Game...</string>
+
+    <!-- Admin Upload Keys Form -->
+    <string name="admin_select_target_game">Select Target Game</string>
+    <string name="admin_choose_game">Choose Game</string>
+    <string name="admin_tap_to_select_game">Tap to select a game</string>
+    <string name="admin_no_games_published">No games published yet</string>
+    <string name="admin_activation_keys_title">Activation Keys</string>
+    <string name="admin_paste_keys_label">Paste Keys (separated by lines or commas)</string>
+    <string name="admin_enter_at_least_one_key">Enter at least 1 activation key</string>
+    <string name="admin_keys_detected">%1$d valid key(s) detected</string>
+    <string name="admin_action_upload_keys">Upload Keys</string>
+    <string name="admin_action_upload_n_keys">Upload %1$d Key(s)</string>
+    <string name="admin_uploading_keys">Uploading Keys...</string>
+
+    <!-- System Info Section -->
+    <string name="system_info_title">Connection &amp; System Info</string>
+    <string name="backend_environment">Backend Environment</string>
+    <string name="backend_render_prod">Render Production API</string>
+    <string name="app_version">App Version</string>
+
+    <!-- Auth Dialog -->
+    <string name="auth_dialog_title">Sign In to GameTrade</string>
+    <string name="auth_dialog_description">Sign in with your Google account to reserve game keys, complete purchases, and access your order history.</string>
+    <string name="auth_continue_with_google">Continue with Google</string>
+    <string name="auth_connecting">Connecting...</string>
+    <string name="auth_secured_by_credential_manager">Secured by Android Credential Manager</string>
+
+    <!-- Store Screen -->
+    <string name="store_no_games">No games available right now.</string>
+    <string name="store_reload">Reload Store</string>
+    <string name="store_sold_out">Sold Out</string>
+    <string name="store_out_of_stock">Out of stock</string>
+    <string name="store_stock_count">Stock: %1$d</string>
+    <string name="store_add_to_cart">Add to Cart</string>
+    <string name="store_login_to_buy">Login to Buy</string>
+
+    <!-- Cart Sheet -->
+    <string name="cart_title">Your Cart</string>
+    <string name="cart_game_count_single">1 game</string>
+    <string name="cart_game_count_plural">%1$d games</string>
+    <string name="cart_reservation_notice">Keys are temporarily locked for you for 15 minutes.</string>
+    <string name="cart_sign_in_required_title">Sign In Required</string>
+    <string name="cart_sign_in_required_desc">Please sign in to view locked keys in your cart and complete checkout.</string>
+    <string name="cart_empty_title">Your Cart is Empty</string>
+    <string name="cart_empty_desc">Browse the store and reserve a game key before stock runs out!</string>
+    <string name="cart_total_amount">Total Amount</string>
+    <string name="cart_processing">Processing...</string>
+    <string name="cart_checkout_button">Checkout &amp; Reveal Keys</string>
+    <string name="cart_key_locked_badge">Key #%1$d</string>
+
+    <!-- Game Details Sheet -->
+    <string name="details_item_locked_banner">Item locked and added to your cart for 15 minutes!</string>
+    <string name="details_available_stock">Available stock: %1$d</string>
+    <string name="details_adding">Adding...</string>
+    <string name="details_added_success">Added to Cart!</string>
+    <string name="details_about_game">About this Game</string>
+    <string name="details_no_description">No description provided for this game.</string>
+
+    <!-- Orders Screen -->
+    <string name="orders_sign_in_title">Sign In to View Orders</string>
+    <string name="orders_sign_in_desc">Your purchased game keys and order receipts are saved to your account.</string>
+    <string name="orders_empty_title">No Orders Found</string>
+    <string name="orders_empty_desc">You haven\'t completed any purchases yet.</string>
+    <string name="orders_refresh">Refresh Orders</string>
+    <string name="orders_order_number">Order #%1$s</string>
+    <string name="orders_purchased_keys">Purchased Keys (%1$d):</string>
+    <string name="orders_copy_key">Copy Key</string>
+    <string name="orders_key_copied_snackbar">Key copied to clipboard!</string>
+
+    <!-- Purchase Receipt Dialog -->
+    <string name="receipt_title">Purchase Successful!</string>
+    <string name="receipt_total_paid">Total Paid: $%1$.2f</string>
+    <string name="receipt_activation_keys">Your Activation Keys:</string>
+    <string name="action_done">Done</string>
+
+    <!-- Notice Dialog & Cart Details -->
+    <string name="notice_sign_in">Sign-In Notice</string>
+    <string name="cart_expires_in_minutes">Expires in ~%1$dm</string>
+    <string name="cart_expiring_soon">Expiring soon (&lt;1m)</string>
+    <string name="cart_expired">Expired</string>
+    <string name="cart_locked_until">Locked until: %1$s</string>
+    <string name="cd_account">Account</string>
 </resources>

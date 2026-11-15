@@ -128,7 +128,7 @@ The project includes production-ready [GitHub Actions](.github/workflows/) workf
 
 ### 1. Automated Workflows
 - **`ci.yml`**: Runs on every push and pull request to `main`. Validates code formatting, lint checks, unit tests, and compiles the debug APK.
-- **`release.yml`**: Automatically triggers when a version tag (e.g., `v1.1.0`) is pushed or dispatched manually. It signs the release build with your keystore, builds the standalone APK, and publishes a new **GitHub Release** with the APK attached and auto-generated release notes.
+- **`release.yml`**: Automatically triggers when a version tag (e.g., `v1.2.0`) is pushed or dispatched manually. It signs the release build with your keystore, builds the standalone APK, and publishes a new **GitHub Release** with the APK attached and auto-generated release notes.
 
 ### 2. Setting Up GitHub Secrets
 To enable automated release signing, configure the following secrets in your GitHub repository (**Settings > Secrets and variables > Actions**):

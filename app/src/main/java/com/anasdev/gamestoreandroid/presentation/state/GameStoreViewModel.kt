@@ -1,23 +1,28 @@
 package com.anasdev.gamestoreandroid.presentation.state
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider.Factory
 import androidx.lifecycle.viewModelScope
-import com.anasdev.gamestoreandroid.data.local.TokenManager
-import com.anasdev.gamestoreandroid.data.remote.GameStoreApi
+import com.anasdev.gamestoreandroid.domain.model.AppLanguage
+import com.anasdev.gamestoreandroid.domain.model.AppTheme
 import com.anasdev.gamestoreandroid.domain.model.AuthRequest
+import com.anasdev.gamestoreandroid.domain.model.CreateGameRequest
 import com.anasdev.gamestoreandroid.domain.model.GameResponse
 import com.anasdev.gamestoreandroid.domain.model.LockedCartItemResponse
 import com.anasdev.gamestoreandroid.domain.model.OrderReceiptResponse
+import com.anasdev.gamestoreandroid.domain.repository.GameStoreRepository
+import com.anasdev.gamestoreandroid.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import androidx.lifecycle.ViewModelProvider.Factory
 
 data class GameStoreUiState(
     val isLoading: Boolean = false,
     val games: List<GameResponse> = emptyList(),
     val cartItems: List<LockedCartItemResponse> = emptyList(),
+    val removingCartItemIds: Set<String> = emptySet(),
     val orders: List<OrderReceiptResponse> = emptyList(),
     val latestReceipt: OrderReceiptResponse? = null,
     val errorMessage: String? = null,
@@ -25,15 +30,34 @@ data class GameStoreUiState(
     val isUploadingImage: Boolean = false,
     val uploadedImagePath: String? = null
 )
+
 class GameStoreViewModel(
-    private val api: GameStoreApi,
-    private val tokenManager: TokenManager
-): ViewModel() {
+    private val repository: GameStoreRepository,
+    private val settingsRepository: SettingsRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(GameStoreUiState())
     val uiState = _uiState.asStateFlow()
 
-    val tokenFlow = tokenManager.tokenFlow
-    val roleFlow = tokenManager.roleFlow
+    val tokenFlow = repository.tokenFlow
+    val roleFlow = repository.roleFlow
+    val profilePictureUrlFlow = repository.profilePictureUrlFlow
+    val userNameFlow = repository.userNameFlow
+
+    private val _appTheme = MutableStateFlow(settingsRepository.getAppTheme())
+    val appTheme: StateFlow<AppTheme> = _appTheme.asStateFlow()
+
+    private val _appLanguage = MutableStateFlow(settingsRepository.getAppLanguage())
+    val appLanguage: StateFlow<AppLanguage> = _appLanguage.asStateFlow()
+
+    fun setAppTheme(theme: AppTheme) {
+        settingsRepository.setAppTheme(theme)
+        _appTheme.value = theme
+    }
+
+    fun setAppLanguage(language: AppLanguage) {
+        settingsRepository.setAppLanguage(language)
+        _appLanguage.value = language
+    }
 
     private fun sanitizeErrorMessage(throwable: Throwable, fallback: String): String {
         val raw = throwable.message.orEmpty()
@@ -51,18 +75,18 @@ class GameStoreViewModel(
     init {
         loadGames()
         viewModelScope.launch {
-            if (tokenManager.getToken() != null) {
+            if (repository.getToken() != null) {
                 loadCart()
                 loadOrders()
             }
         }
     }
 
-    fun loadGames(){
+    fun loadGames() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            api.getAllGames()
+            repository.getAllGames()
                 .onSuccess { gameList ->
                     _uiState.update { it.copy(isLoading = false, games = gameList) }
                 }
@@ -77,11 +101,11 @@ class GameStoreViewModel(
         }
     }
 
-    fun login(email: String, password: String){
+    fun login(email: String, password: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            api.login(AuthRequest(email,password))
+            repository.login(AuthRequest(email, password))
                 .onSuccess {
                     _uiState.update { it.copy(isLoading = false) }
                     loadCart()
@@ -102,7 +126,7 @@ class GameStoreViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            api.register(AuthRequest(email, password))
+            repository.register(AuthRequest(email, password))
                 .onSuccess {
                     _uiState.update { it.copy(isLoading = false) }
                     loadCart()
@@ -119,11 +143,15 @@ class GameStoreViewModel(
         }
     }
 
-    fun loginWithGoogle(idToken: String) {
+    fun loginWithGoogle(
+        idToken: String,
+        profilePictureUrl: String? = null,
+        displayName: String? = null
+    ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            api.loginWithGoogle(idToken)
+            repository.loginWithGoogle(idToken, profilePictureUrl, displayName)
                 .onSuccess {
                     _uiState.update { it.copy(isLoading = false) }
                     loadCart()
@@ -140,24 +168,31 @@ class GameStoreViewModel(
         }
     }
 
-    fun logout(){
+    fun logout() {
         viewModelScope.launch {
-            tokenManager.clearAuthData()
+            repository.clearAuthData()
 
-            _uiState.update { it.copy(cartItems = emptyList(), orders = emptyList(), latestReceipt = null) }
+            _uiState.update {
+                it.copy(
+                    cartItems = emptyList(),
+                    removingCartItemIds = emptySet(),
+                    orders = emptyList(),
+                    latestReceipt = null
+                )
+            }
         }
     }
 
-    fun clearError(){
+    fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    fun loadCart(){
+    fun loadCart() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            api.getCartItems()
+            repository.getCartItems()
                 .onSuccess { cartItems ->
-                    _uiState.update { it.copy(isLoading = false,cartItems = cartItems) }
+                    _uiState.update { it.copy(isLoading = false, cartItems = cartItems) }
                 }
                 .onFailure { error ->
                     _uiState.update {
@@ -170,34 +205,86 @@ class GameStoreViewModel(
         }
     }
 
-    fun addToCart(gameId: String){
+    fun addToCart(gameId: String, onResult: ((Boolean) -> Unit)? = null) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            api.lockKeyForCart(gameId)
-                .onSuccess {
-                    _uiState.update { it.copy(isLoading = false) }
-                    loadCart()
-                    loadGames()
+            _uiState.update { it.copy(errorMessage = null) }
+            repository.lockKeyForCart(gameId)
+                .onSuccess { lockedItem ->
+                    _uiState.update { current ->
+                        current.copy(
+                            cartItems = current.cartItems + lockedItem,
+                            games = current.games.map { game ->
+                                if (game.id == gameId) {
+                                    game.copy(availableStock = (game.availableStock - 1).coerceAtLeast(0))
+                                } else {
+                                    game
+                                }
+                            }
+                        )
+                    }
+                    onResult?.invoke(true)
                 }
                 .onFailure { error ->
                     _uiState.update {
                         it.copy(
-                            isLoading = false,
                             errorMessage = sanitizeErrorMessage(error, "Unable to reserve game key. Item may be out of stock.")
+                        )
+                    }
+                    onResult?.invoke(false)
+                }
+        }
+    }
+
+    fun removeFromCart(keyId: String) {
+        val removedItem = _uiState.value.cartItems.find { it.keyId == keyId }
+        val gameId = removedItem?.gameId
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(removingCartItemIds = it.removingCartItemIds + keyId, errorMessage = null) }
+            repository.removeFromCart(keyId)
+                .onSuccess {
+                    _uiState.update { current ->
+                        current.copy(
+                            removingCartItemIds = current.removingCartItemIds - keyId,
+                            cartItems = current.cartItems.filterNot { it.keyId == keyId },
+                            games = if (gameId != null) {
+                                current.games.map { game ->
+                                    if (game.id == gameId) {
+                                        game.copy(availableStock = game.availableStock + 1)
+                                    } else {
+                                        game
+                                    }
+                                }
+                            } else {
+                                current.games
+                            }
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            removingCartItemIds = it.removingCartItemIds - keyId,
+                            errorMessage = sanitizeErrorMessage(error, "Failed to remove item from cart. Please try again.")
                         )
                     }
                 }
         }
     }
 
-    fun checkoutCart(){
+    fun checkoutCart() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            api.checkout()
+            repository.checkout()
                 .onSuccess { receipt ->
-                    _uiState.update { it.copy(isLoading = false,latestReceipt = receipt, cartItems = emptyList()) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            latestReceipt = receipt,
+                            cartItems = emptyList()
+                        )
+                    }
                     loadOrders()
-                    loadGames()
                 }
                 .onFailure { error ->
                     _uiState.update {
@@ -209,12 +296,13 @@ class GameStoreViewModel(
                 }
         }
     }
-    fun loadOrders(){
+
+    fun loadOrders() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            api.getOrderHistory()
+            repository.getOrderHistory()
                 .onSuccess { ordersList ->
-                    _uiState.update { it.copy(isLoading = false,orders = ordersList) }
+                    _uiState.update { it.copy(isLoading = false, orders = ordersList) }
                 }
                 .onFailure { error ->
                     _uiState.update {
@@ -236,7 +324,7 @@ class GameStoreViewModel(
     }
 
     fun createGame(
-        request: com.anasdev.gamestoreandroid.domain.model.CreateGameRequest,
+        request: CreateGameRequest,
         imageBytes: ByteArray? = null
     ) {
         viewModelScope.launch {
@@ -244,7 +332,7 @@ class GameStoreViewModel(
 
             var finalImagePath = request.imagePath
             if (imageBytes != null && imageBytes.isNotEmpty()) {
-                val uploadResult = api.uploadGameImage(imageBytes, "cover.jpg", "image/jpeg")
+                val uploadResult = repository.uploadGameImage(imageBytes, "cover.jpg", "image/jpeg")
                 if (uploadResult.isFailure) {
                     _uiState.update {
                         it.copy(
@@ -258,7 +346,7 @@ class GameStoreViewModel(
             }
 
             val finalRequest = request.copy(imagePath = finalImagePath)
-            api.createGame(finalRequest)
+            repository.createGame(finalRequest)
                 .onSuccess {
                     _uiState.update {
                         it.copy(
@@ -283,7 +371,7 @@ class GameStoreViewModel(
     fun addGameKeys(gameId: String, keys: List<String>) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
-            api.addGameKeys(gameId, keys)
+            repository.addGameKeys(gameId, keys)
                 .onSuccess { count ->
                     _uiState.update {
                         it.copy(
@@ -307,7 +395,7 @@ class GameStoreViewModel(
     fun uploadGameImage(bytes: ByteArray, fileName: String, mimeType: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isUploadingImage = true, errorMessage = null) }
-            api.uploadGameImage(bytes, fileName, mimeType)
+            repository.uploadGameImage(bytes, fileName, mimeType)
                 .onSuccess { path ->
                     _uiState.update {
                         it.copy(
@@ -333,13 +421,13 @@ class GameStoreViewModel(
 
     companion object {
         fun provideFactory(
-            api: GameStoreApi,
-            tokenManager: TokenManager
+            repository: GameStoreRepository,
+            settingsRepository: SettingsRepository
         ): Factory =
             object : Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return GameStoreViewModel(api, tokenManager) as T
+                    return GameStoreViewModel(repository, settingsRepository) as T
                 }
             }
     }

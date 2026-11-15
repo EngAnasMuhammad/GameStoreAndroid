@@ -1,15 +1,18 @@
 package com.anasdev.gamestoreandroid.data.remote
 
-import com.anasdev.gamestoreandroid.data.local.TokenManager
+import com.anasdev.gamestoreandroid.domain.model.AddKeyRequest
 import com.anasdev.gamestoreandroid.domain.model.AuthRequest
 import com.anasdev.gamestoreandroid.domain.model.AuthResponse
+import com.anasdev.gamestoreandroid.domain.model.CreateGameRequest
 import com.anasdev.gamestoreandroid.domain.model.GameResponse
 import com.anasdev.gamestoreandroid.domain.model.GoogleAuthRequest
+import com.anasdev.gamestoreandroid.domain.model.ImageUploadResponse
 import com.anasdev.gamestoreandroid.domain.model.LockKeyRequest
 import com.anasdev.gamestoreandroid.domain.model.LockedCartItemResponse
 import com.anasdev.gamestoreandroid.domain.model.OrderReceiptResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.delete
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
@@ -22,29 +25,27 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 
 class GameStoreApi(
-    private val client: HttpClient,
-    private val tokenManager: TokenManager
+    private val client: HttpClient
 ) {
     suspend fun getAllGames(): Result<List<GameResponse>> = runCatching {
         val response = client.get("games")
         if (response.status.isSuccess()) {
             response.body<List<GameResponse>>()
         } else {
-            throw Exception("Failed to load games: ${response.status}")
+            throw Exception("Failed: ${response.status}")
         }
     }
 
+    suspend fun getGames(): Result<List<GameResponse>> = getAllGames()
+
     suspend fun login(request: AuthRequest): Result<AuthResponse> = runCatching {
-        val response = client.post("auth/login"){
+        val response = client.post("auth/login") {
             setBody(request)
         }
-        if (response.status.isSuccess()){
-            val authResponse = response.body<AuthResponse>()
-            tokenManager.saveAuthData(authResponse.token, authResponse.role)
-            authResponse
-        }
-        else{
-            throw Exception("Invalid Email or Password (${response.status.value})")
+        if (response.status.isSuccess()) {
+            response.body<AuthResponse>()
+        } else {
+            throw Exception("Failed: ${response.status}")
         }
     }
 
@@ -52,95 +53,91 @@ class GameStoreApi(
         val response = client.post("auth/register") {
             setBody(request)
         }
-        if (response.status.isSuccess()){
-            val authResponse = response.body<AuthResponse>()
-
-            tokenManager.saveAuthData(authResponse.token, authResponse.role)
-            authResponse
-        }
-        else {
-            throw Exception("Registration failed (${response.status.value})")
+        if (response.status.isSuccess()) {
+            response.body<AuthResponse>()
+        } else {
+            throw Exception("Failed: ${response.status}")
         }
     }
 
     suspend fun loginWithGoogle(idToken: String): Result<AuthResponse> = runCatching {
         val response = client.post("auth/google") {
-            setBody(GoogleAuthRequest(idToken))
+            setBody(GoogleAuthRequest(idToken = idToken))
         }
+
         if (response.status.isSuccess()) {
-            val authResponse = response.body<AuthResponse>()
-            tokenManager.saveAuthData(authResponse.token, authResponse.role)
-            authResponse
+            response.body<AuthResponse>()
+        } else if (response.status == HttpStatusCode.Unauthorized) {
+            throw Exception("Invalid Google ID token")
         } else {
             throw Exception("Google authentication failed (${response.status.value})")
         }
     }
 
-    suspend fun lockKeyForCart(gameId: String): Result<LockedCartItemResponse> = runCatching {
-        val token =
-            tokenManager.getToken() ?: throw Exception("Unauthenticated user cannot use cart")
-
+    suspend fun lockKeyForCart(gameId: String, token: String): Result<LockedCartItemResponse> = runCatching {
         val response = client.post("cart/lock") {
-            header(HttpHeaders.Authorization,"Bearer $token")
+            header(HttpHeaders.Authorization, "Bearer $token")
             setBody(LockKeyRequest(gameId))
         }
 
-        if(response.status.isSuccess()){
+        if (response.status.isSuccess()) {
             response.body<LockedCartItemResponse>()
-        }
-        else if (response.status == HttpStatusCode.Conflict) {
+        } else if (response.status == HttpStatusCode.Conflict) {
             throw Exception("Out of stock")
-        }
-        else {
-            throw Exception("Failed :(${response.status})")
+        } else {
+            throw Exception("Failed: (${response.status})")
         }
     }
 
-    suspend fun getCartItems(): Result<List<LockedCartItemResponse>> = runCatching {
-        val token = tokenManager.getToken() ?: throw Exception("Unauthenticated user cannot use cart")
-
-        val response = client.get("cart"){
-            header(HttpHeaders.Authorization,"Bearer $token")
-        }
-
-        if (response.status.isSuccess()){
-            response.body<List<LockedCartItemResponse>>()
-        }
-        else {
-            throw Exception("Failed: ${response.status}")
-        }
-
-    }
-
-    suspend fun checkout(): Result<OrderReceiptResponse> = runCatching {
-        val token = tokenManager.getToken() ?: throw Exception("Unauthenticated user cannot use cart")
-
-        val response = client.post("cart/checkout"){
+    suspend fun removeFromCart(keyId: String, token: String): Result<Unit> = runCatching {
+        val response = client.delete("cart/$keyId") {
             header(HttpHeaders.Authorization, "Bearer $token")
         }
 
-        if (response.status.isSuccess()){
-            response.body<OrderReceiptResponse>()
+        if (response.status.isSuccess()) {
+            Unit
+        } else {
+            throw Exception("Failed to remove item: (${response.status})")
         }
-        else{
+    }
+
+    suspend fun getCartItems(token: String): Result<List<LockedCartItemResponse>> = runCatching {
+        val response = client.get("cart") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+        if (response.status.isSuccess()) {
+            response.body<List<LockedCartItemResponse>>()
+        } else {
             throw Exception("Failed: ${response.status}")
         }
     }
 
-    suspend fun getOrderHistory(): Result<List<OrderReceiptResponse>> = runCatching {
-        val token = tokenManager.getToken() ?: throw Exception("Unauthenticated user cannot use cart")
-
-        val response = client.get("orders"){
-            header(HttpHeaders.Authorization,"Bearer $token")
+    suspend fun checkout(token: String): Result<OrderReceiptResponse> = runCatching {
+        val response = client.post("cart/checkout") {
+            header(HttpHeaders.Authorization, "Bearer $token")
         }
 
-        if (response.status.isSuccess()) response.body<List<OrderReceiptResponse>>()
-        else throw Exception("Failed: ${response.status}")
+        if (response.status.isSuccess()) {
+            response.body<OrderReceiptResponse>()
+        } else {
+            throw Exception("Failed: ${response.status}")
+        }
     }
 
-    suspend fun createGame(request: com.anasdev.gamestoreandroid.domain.model.CreateGameRequest): Result<String> = runCatching {
-        val token = tokenManager.getToken() ?: throw Exception("Admin authentication required")
+    suspend fun getOrderHistory(token: String): Result<List<OrderReceiptResponse>> = runCatching {
+        val response = client.get("orders") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
 
+        if (response.status.isSuccess()) {
+            response.body<List<OrderReceiptResponse>>()
+        } else {
+            throw Exception("Failed: ${response.status}")
+        }
+    }
+
+    suspend fun createGame(request: CreateGameRequest, token: String): Result<String> = runCatching {
         val response = client.post("admin/games") {
             header(HttpHeaders.Authorization, "Bearer $token")
             setBody(request)
@@ -162,12 +159,10 @@ class GameStoreApi(
         }
     }
 
-    suspend fun addGameKeys(gameId: String, keys: List<String>): Result<Int> = runCatching {
-        val token = tokenManager.getToken() ?: throw Exception("Admin authentication required")
-
+    suspend fun addGameKeys(gameId: String, keys: List<String>, token: String): Result<Int> = runCatching {
         val response = client.post("admin/games/$gameId/keys") {
             header(HttpHeaders.Authorization, "Bearer $token")
-            setBody(com.anasdev.gamestoreandroid.domain.model.AddKeyRequest(keys))
+            setBody(AddKeyRequest(keys))
         }
 
         when (response.status) {
@@ -190,9 +185,12 @@ class GameStoreApi(
         }
     }
 
-    suspend fun uploadGameImage(bytes: ByteArray, fileName: String, mimeType: String): Result<String> = runCatching {
-        val token = tokenManager.getToken() ?: throw Exception("Admin authentication required")
-
+    suspend fun uploadGameImage(
+        bytes: ByteArray,
+        fileName: String,
+        mimeType: String,
+        token: String
+    ): Result<String> = runCatching {
         val response = client.submitFormWithBinaryData(
             url = "admin/upload-image",
             formData = formData {
@@ -211,7 +209,7 @@ class GameStoreApi(
 
         when (response.status) {
             HttpStatusCode.Created, HttpStatusCode.OK -> {
-                val uploadResponse = response.body<com.anasdev.gamestoreandroid.domain.model.ImageUploadResponse>()
+                val uploadResponse = response.body<ImageUploadResponse>()
                 uploadResponse.imagePath
             }
             HttpStatusCode.Forbidden -> {

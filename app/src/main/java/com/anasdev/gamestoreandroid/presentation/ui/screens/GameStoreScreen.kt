@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
-import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.Storefront
@@ -30,13 +29,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.anasdev.gamestoreandroid.R
 import com.anasdev.gamestoreandroid.domain.model.GameResponse
 import com.anasdev.gamestoreandroid.presentation.components.AdminSheet
 import com.anasdev.gamestoreandroid.presentation.components.AuthDialog
 import com.anasdev.gamestoreandroid.presentation.components.CartSheet
 import com.anasdev.gamestoreandroid.presentation.components.GameDetailsSheet
 import com.anasdev.gamestoreandroid.presentation.components.PurchaseReceiptDialog
+import com.anasdev.gamestoreandroid.presentation.components.UserAvatar
 import com.anasdev.gamestoreandroid.presentation.screens.OrdersScreen
 import com.anasdev.gamestoreandroid.presentation.screens.SettingsScreen
 import com.anasdev.gamestoreandroid.presentation.screens.StoreScreen
@@ -47,6 +50,7 @@ import com.anasdev.gamestoreandroid.presentation.state.GameStoreViewModel
 fun GameStoreScreen(viewModel: GameStoreViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val token by viewModel.tokenFlow.collectAsState(initial = null)
+    val profilePictureUrl by viewModel.profilePictureUrlFlow.collectAsState(initial = null)
     val isLoggedIn = !token.isNullOrBlank()
 
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -69,9 +73,9 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                 title = {
                     Text(
                         text = when (selectedTab) {
-                            0 -> "GameTrade"
-                            1 -> "Orders"
-                            else -> "Settings"
+                            0 -> stringResource(R.string.app_name)
+                            1 -> stringResource(R.string.nav_orders)
+                            else -> stringResource(R.string.nav_settings)
                         },
                         fontWeight = FontWeight.Bold
                     )
@@ -97,12 +101,12 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.ShoppingCart,
-                                        contentDescription = "Cart"
+                                        contentDescription = stringResource(R.string.cart_title)
                                     )
                                 }
                             }
 
-                            // Profile Icon
+                            // Profile Icon / User Avatar
                             IconButton(onClick = {
                                 if (isLoggedIn) {
                                     selectedTab = 2
@@ -110,28 +114,15 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                                     showAuthDialog = true
                                 }
                             }) {
-                                Icon(
-                                    imageVector = Icons.Rounded.AccountCircle,
-                                    contentDescription = "Account"
+                                UserAvatar(
+                                    profilePictureUrl = if (isLoggedIn) profilePictureUrl else null,
+                                    size = 30.dp,
+                                    contentDescription = stringResource(R.string.cd_account)
                                 )
                             }
                         }
                         1 -> {
-                            // Orders Tab: Refresh action
-                            IconButton(onClick = {
-                                if (isLoggedIn) {
-                                    viewModel.loadOrders()
-                                } else {
-                                    showAuthDialog = true
-                                }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
-                                    contentDescription = "Refresh Orders"
-                                )
-                            }
-
-                            // Profile Icon
+                            // Profile Icon / User Avatar
                             IconButton(onClick = {
                                 if (isLoggedIn) {
                                     selectedTab = 2
@@ -139,9 +130,10 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                                     showAuthDialog = true
                                 }
                             }) {
-                                Icon(
-                                    imageVector = Icons.Rounded.AccountCircle,
-                                    contentDescription = "Account"
+                                UserAvatar(
+                                    profilePictureUrl = if (isLoggedIn) profilePictureUrl else null,
+                                    size = 30.dp,
+                                    contentDescription = stringResource(R.string.cd_account)
                                 )
                             }
                         }
@@ -163,10 +155,10 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                     icon = {
                         Icon(
                             imageVector = Icons.Rounded.Storefront,
-                            contentDescription = "Store"
+                            contentDescription = stringResource(R.string.nav_store)
                         )
                     },
-                    label = { Text("Store") }
+                    label = { Text(stringResource(R.string.nav_store)) }
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
@@ -177,10 +169,10 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                     icon = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
-                            contentDescription = "Orders"
+                            contentDescription = stringResource(R.string.nav_orders)
                         )
                     },
-                    label = { Text("Orders") }
+                    label = { Text(stringResource(R.string.nav_orders)) }
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
@@ -190,10 +182,10 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                     icon = {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
-                            contentDescription = "Settings"
+                            contentDescription = stringResource(R.string.nav_settings)
                         )
                     },
-                    label = { Text("Settings") }
+                    label = { Text(stringResource(R.string.nav_settings)) }
                 )
             }
         }
@@ -222,7 +214,32 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
         }
     }
 
-    // Modal Bottom Sheets
+    // Cart Bottom Sheet
+    if (showCartSheet) {
+        CartSheet(
+            cartItems = uiState.cartItems,
+            isLoggedIn = isLoggedIn,
+            isLoading = uiState.isLoading,
+            removingCartItemIds = uiState.removingCartItemIds,
+            onDismiss = { showCartSheet = false },
+            onCheckout = { viewModel.checkoutCart() },
+            onRemoveItem = { keyId -> viewModel.removeFromCart(keyId) },
+            onLoginClick = {
+                showCartSheet = false
+                showAuthDialog = true
+            }
+        )
+    }
+
+    // Purchase Receipt Dialog
+    uiState.latestReceipt?.let { receipt ->
+        PurchaseReceiptDialog(
+            receipt = receipt,
+            onDismiss = { viewModel.dismissReceipt() }
+        )
+    }
+
+    // Admin Sheet
     if (showAdminSheet) {
         AdminSheet(
             games = uiState.games,
@@ -231,14 +248,16 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
             uploadedImagePath = uiState.uploadedImagePath,
             successMessage = uiState.successMessage,
             onDismiss = {
+                showAdminSheet = false
                 viewModel.clearSuccess()
                 viewModel.clearUploadedImage()
-                showAdminSheet = false
             },
             onCreateGame = { request, imageBytes ->
                 viewModel.createGame(request, imageBytes)
             },
-            onUploadKeys = { gameId, keys -> viewModel.addGameKeys(gameId, keys) },
+            onUploadKeys = { gameId, keys ->
+                viewModel.addGameKeys(gameId, keys)
+            },
             onUploadImage = { bytes, fileName, mimeType ->
                 viewModel.uploadGameImage(bytes, fileName, mimeType)
             },
@@ -247,28 +266,16 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
         )
     }
 
-    if (showCartSheet) {
-        CartSheet(
-            cartItems = uiState.cartItems,
-            isLoggedIn = isLoggedIn,
-            isLoading = uiState.isLoading,
-            onDismiss = { showCartSheet = false },
-            onCheckout = { viewModel.checkoutCart() },
-            onLoginClick = {
-                showCartSheet = false
-                showAuthDialog = true
-            }
-        )
-    }
-
+    // Game Details Sheet
     selectedGameForDetails?.let { game ->
+        val liveGame = uiState.games.find { it.id == game.id } ?: game
         GameDetailsSheet(
-            game = game,
+            game = liveGame,
             isLoggedIn = isLoggedIn,
             onDismiss = { selectedGameForDetails = null },
-            onAddToCart = { gameId ->
+            onAddToCart = { gameId, onResult ->
                 if (isLoggedIn) {
-                    viewModel.addToCart(gameId)
+                    viewModel.addToCart(gameId, onResult)
                 } else {
                     selectedGameForDetails = null
                     showAuthDialog = true
@@ -281,8 +288,8 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
     if (showAuthDialog) {
         AuthDialog(
             onDismiss = { showAuthDialog = false },
-            onGoogleLogin = { idToken ->
-                viewModel.loginWithGoogle(idToken)
+            onGoogleLogin = { idToken, profilePicUrl, displayName ->
+                viewModel.loginWithGoogle(idToken, profilePicUrl, displayName)
                 showAuthDialog = false
             },
             onError = { error ->
@@ -295,33 +302,13 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
     authErrorMessage?.let { error ->
         AlertDialog(
             onDismissRequest = { authErrorMessage = null },
-            title = { Text("Sign-In Notice") },
+            title = { Text(stringResource(R.string.notice_sign_in)) },
             text = { Text(error) },
             confirmButton = {
                 TextButton(onClick = { authErrorMessage = null }) {
-                    Text("OK")
+                    Text(stringResource(R.string.action_done))
                 }
             }
-        )
-    }
-
-    uiState.errorMessage?.let { error ->
-        AlertDialog(
-            onDismissRequest = { viewModel.clearError() },
-            title = { Text("Notice") },
-            text = { Text(error) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.clearError() }) {
-                    Text("OK")
-                }
-            }
-        )
-    }
-
-    uiState.latestReceipt?.let { receipt ->
-        PurchaseReceiptDialog(
-            receipt = receipt,
-            onDismiss = { viewModel.dismissReceipt() }
         )
     }
 }

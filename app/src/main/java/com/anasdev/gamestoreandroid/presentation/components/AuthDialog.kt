@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,6 +43,7 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.NoCredentialException
 import com.anasdev.gamestoreandroid.BuildConfig
+import com.anasdev.gamestoreandroid.R
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
@@ -48,7 +51,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AuthDialog(
     onDismiss: () -> Unit,
-    onGoogleLogin: (idToken: String) -> Unit,
+    onGoogleLogin: (idToken: String, profilePictureUrl: String?, displayName: String?) -> Unit,
     onError: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -91,9 +94,11 @@ fun AuthDialog(
                 val credential = result.credential
                 val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                 val idToken = googleIdTokenCredential.idToken
+                val profilePictureUrl = googleIdTokenCredential.profilePictureUri?.toString()
+                val displayName = googleIdTokenCredential.displayName ?: googleIdTokenCredential.givenName ?: googleIdTokenCredential.id
 
                 isLoading = false
-                onGoogleLogin(idToken)
+                onGoogleLogin(idToken, profilePictureUrl, displayName)
             } catch (_: GetCredentialCancellationException) {
                 // User dismissed the credential picker: handle silently
                 Log.d("AuthDialog", "Google Sign-In was cancelled by user")
@@ -122,7 +127,7 @@ fun AuthDialog(
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp)
                 )
-                Text("Sign In to GameTrade", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.auth_dialog_title), fontWeight = FontWeight.Bold)
             }
         },
         text = {
@@ -132,7 +137,7 @@ fun AuthDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Sign in with your Google account to reserve game keys, complete purchases, and access your order history.",
+                    text = stringResource(R.string.auth_dialog_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Start
@@ -154,7 +159,7 @@ fun AuthDialog(
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text("Connecting...")
+                        Text(stringResource(R.string.auth_connecting))
                     } else {
                         // Google "G" badge
                         Surface(
@@ -173,7 +178,7 @@ fun AuthDialog(
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Continue with Google",
+                            text = stringResource(R.string.auth_continue_with_google),
                             fontWeight = FontWeight.SemiBold,
                             style = MaterialTheme.typography.titleSmall
                         )
@@ -191,7 +196,7 @@ fun AuthDialog(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                     Text(
-                        text = "Secured by Android Credential Manager",
+                        text = stringResource(R.string.auth_secured_by_credential_manager),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -201,7 +206,7 @@ fun AuthDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !isLoading) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )

@@ -1,9 +1,15 @@
 package com.anasdev.gamestoreandroid.presentation.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -18,10 +24,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddShoppingCart
 import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -32,13 +40,23 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.anasdev.gamestoreandroid.R
 import com.anasdev.gamestoreandroid.domain.model.GameResponse
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,12 +64,30 @@ fun GameDetailsSheet(
     game: GameResponse?,
     isLoggedIn: Boolean,
     onDismiss: () -> Unit,
-    onAddToCart: (String) -> Unit
+    onAddToCart: (gameId: String, onResult: (Boolean) -> Unit) -> Unit
 ) {
     if (game == null) return
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val inStock = game.availableStock > 0
+
+    var isAddingToCart by remember { mutableStateOf(false) }
+    var isAddedSuccess by remember { mutableStateOf(false) }
+    var localAvailableStock by remember(game.id) { mutableIntStateOf(game.availableStock) }
+
+    // Keep local stock aligned if game model stock updates externally
+    LaunchedEffect(game.availableStock) {
+        localAvailableStock = game.availableStock
+    }
+
+    // Auto-dismiss the transient "Added to Cart" confirmation state after 2.5s
+    LaunchedEffect(isAddedSuccess) {
+        if (isAddedSuccess) {
+            delay(2500.milliseconds)
+            isAddedSuccess = false
+        }
+    }
+
+    val inStock = localAvailableStock > 0
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -87,7 +123,7 @@ fun GameDetailsSheet(
                             .padding(12.dp)
                     ) {
                         Text(
-                            text = "Sold Out",
+                            text = stringResource(R.string.store_sold_out),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onErrorContainer,
@@ -108,10 +144,11 @@ fun GameDetailsSheet(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Metadata Chips (Genre & Release Date)
-            Row(
+            // Metadata Chips (Genre & Release Date) - Uses FlowRow & clean date to prevent ugly wrapping
+            FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 SuggestionChip(
                     onClick = {},
@@ -126,7 +163,7 @@ fun GameDetailsSheet(
                 )
                 SuggestionChip(
                     onClick = {},
-                    label = { Text("Released: ${game.releaseDate}") },
+                    label = { Text(game.releaseDate) },
                     icon = {
                         Icon(
                             imageVector = Icons.Rounded.CalendarToday,
@@ -138,6 +175,40 @@ fun GameDetailsSheet(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Transient confirmation banner when item is locked & added to cart
+            AnimatedVisibility(
+                visible = isAddedSuccess,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.details_item_locked_banner),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                }
+            }
 
             // Stock, Price & Primary Add to Cart Action Row
             Card(
@@ -162,7 +233,11 @@ fun GameDetailsSheet(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = if (inStock) "Available stock: ${game.availableStock}" else "Out of stock",
+                            text = if (inStock) {
+                                stringResource(R.string.details_available_stock, localAvailableStock)
+                            } else {
+                                stringResource(R.string.store_out_of_stock)
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = if (inStock) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
@@ -170,20 +245,63 @@ fun GameDetailsSheet(
                     }
 
                     Button(
-                        onClick = { onAddToCart(game.id) },
-                        enabled = inStock,
+                        onClick = {
+                            if (!isLoggedIn) {
+                                onAddToCart(game.id) { /* no-op */ }
+                                return@Button
+                            }
+                            if (inStock && !isAddingToCart) {
+                                isAddingToCart = true
+                                onAddToCart(game.id) { success ->
+                                    isAddingToCart = false
+                                    if (success) {
+                                        localAvailableStock = (localAvailableStock - 1).coerceAtLeast(0)
+                                        isAddedSuccess = true
+                                    }
+                                }
+                            }
+                        },
+                        enabled = (inStock || isAddedSuccess) && !isAddingToCart,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
+                            containerColor = if (isAddedSuccess) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AddShoppingCart,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(if (isLoggedIn) "Add to Cart" else "Login to Buy")
+                        when {
+                            isAddingToCart -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Spacer(modifier = Modifier.size(8.dp))
+                                Text(stringResource(R.string.details_adding))
+                            }
+                            isAddedSuccess -> {
+                                Icon(
+                                    imageVector = Icons.Rounded.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.size(8.dp))
+                                Text(stringResource(R.string.details_added_success))
+                            }
+                            else -> {
+                                Icon(
+                                    imageVector = Icons.Rounded.AddShoppingCart,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.size(8.dp))
+                                Text(
+                                    if (isLoggedIn) {
+                                        stringResource(R.string.store_add_to_cart)
+                                    } else {
+                                        stringResource(R.string.store_login_to_buy)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -194,7 +312,7 @@ fun GameDetailsSheet(
 
             // Scrollable Description Section
             Text(
-                text = "About this Game",
+                text = stringResource(R.string.details_about_game),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -205,7 +323,7 @@ fun GameDetailsSheet(
                 text = if (!game.description.isNullOrBlank()) {
                     game.description
                 } else {
-                    "No detailed description provided for this title."
+                    stringResource(R.string.details_no_description)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

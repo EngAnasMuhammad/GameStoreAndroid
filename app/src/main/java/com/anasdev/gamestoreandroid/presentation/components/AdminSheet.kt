@@ -69,10 +69,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.anasdev.gamestoreandroid.R
 import com.anasdev.gamestoreandroid.domain.model.CreateGameRequest
 import com.anasdev.gamestoreandroid.domain.model.GameResponse
 import com.anasdev.gamestoreandroid.util.ImageCompressor
@@ -129,7 +131,7 @@ fun AdminSheet(
                         modifier = Modifier.size(28.dp)
                     )
                     Text(
-                        text = "Admin Dashboard",
+                        text = stringResource(R.string.admin_dashboard),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -138,7 +140,7 @@ fun AdminSheet(
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(R.string.action_cancel),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -152,7 +154,7 @@ fun AdminSheet(
                         selectedTab = 0
                         onClearSuccess()
                     },
-                    text = { Text("Add New Game") },
+                    text = { Text(stringResource(R.string.admin_tab_add_game)) },
                     icon = { Icon(Icons.Rounded.PostAdd, contentDescription = null) }
                 )
                 Tab(
@@ -161,7 +163,7 @@ fun AdminSheet(
                         selectedTab = 1
                         onClearSuccess()
                     },
-                    text = { Text("Upload Keys") },
+                    text = { Text(stringResource(R.string.admin_tab_upload_keys)) },
                     icon = { Icon(Icons.Rounded.VpnKey, contentDescription = null) }
                 )
             }
@@ -268,13 +270,13 @@ fun AddGameForm(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Game Cover Image (Optional)",
+                text = stringResource(R.string.admin_cover_image_label),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold
             )
             if (localSelectedImageUri != null) {
                 Text(
-                    text = "Ready to upload",
+                    text = stringResource(R.string.admin_ready_to_upload),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
@@ -340,12 +342,12 @@ fun AddGameForm(
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.DeleteOutline,
-                                    contentDescription = "Remove",
+                                    contentDescription = stringResource(R.string.admin_remove_image),
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
-                                    text = "Remove",
+                                    text = stringResource(R.string.admin_remove_image),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.error
                                 )
@@ -362,7 +364,7 @@ fun AddGameForm(
                         ) {
                             Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Change Image", style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(R.string.admin_change_image), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 } else {
@@ -374,18 +376,18 @@ fun AddGameForm(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.AddPhotoAlternate,
-                            contentDescription = "Select Cover Image",
+                            contentDescription = stringResource(R.string.admin_tap_to_choose_image),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(44.dp)
                         )
                         Text(
-                            text = "Tap to choose cover image",
+                            text = stringResource(R.string.admin_tap_to_choose_image),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "PNG, JPG, or WEBP (auto-compressed on submit)",
+                            text = stringResource(R.string.admin_image_format_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -397,7 +399,7 @@ fun AddGameForm(
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
-            label = { Text("Title *") },
+            label = { Text(stringResource(R.string.admin_field_title)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -405,7 +407,7 @@ fun AddGameForm(
         OutlinedTextField(
             value = genre,
             onValueChange = { genre = it },
-            label = { Text("Genre * (e.g. Action RPG, Strategy)") },
+            label = { Text(stringResource(R.string.admin_field_genre)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -413,11 +415,11 @@ fun AddGameForm(
         OutlinedTextField(
             value = releaseDate,
             onValueChange = { releaseDate = it },
-            label = { Text("Release Date * (YYYY-MM-DD)") },
+            label = { Text(stringResource(R.string.admin_field_release_date)) },
             isError = releaseDate.isNotBlank() && !isDateValid,
             supportingText = {
                 if (releaseDate.isNotBlank() && !isDateValid) {
-                    Text("Format must be YYYY-MM-DD")
+                    Text(stringResource(R.string.admin_error_date_format))
                 }
             },
             singleLine = true,
@@ -427,7 +429,7 @@ fun AddGameForm(
         OutlinedTextField(
             value = priceStr,
             onValueChange = { priceStr = it },
-            label = { Text("Price in USD * (e.g. 59.99)") },
+            label = { Text(stringResource(R.string.admin_field_price)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -436,7 +438,7 @@ fun AddGameForm(
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
-            label = { Text("Description (Optional)") },
+            label = { Text(stringResource(R.string.admin_field_description)) },
             minLines = 3,
             modifier = Modifier.fillMaxWidth()
         )
@@ -486,13 +488,17 @@ fun AddGameForm(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (localSelectedImageUri != null) "Uploading & Creating..." else "Creating Game...",
+                    text = if (localSelectedImageUri != null) {
+                        stringResource(R.string.admin_publishing_with_image)
+                    } else {
+                        stringResource(R.string.admin_publishing)
+                    },
                     fontWeight = FontWeight.Bold
                 )
             } else {
                 Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Publish Game", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.admin_action_publish_game), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -528,7 +534,7 @@ fun UploadKeysForm(
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
-            text = "Select Target Game",
+            text = stringResource(R.string.admin_select_target_game),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold
         )
@@ -539,11 +545,11 @@ fun UploadKeysForm(
             onExpandedChange = { expanded = !expanded }
         ) {
             OutlinedTextField(
-                value = selectedGame?.let { "${it.title} (Stock: ${it.availableStock})" } ?: "",
+                value = selectedGame?.let { "${it.title} (${it.availableStock})" } ?: "",
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Choose Game") },
-                placeholder = { Text("Tap to select a game") },
+                label = { Text(stringResource(R.string.admin_choose_game)) },
+                placeholder = { Text(stringResource(R.string.admin_tap_to_select_game)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                 modifier = Modifier
@@ -557,7 +563,7 @@ fun UploadKeysForm(
             ) {
                 if (games.isEmpty()) {
                     DropdownMenuItem(
-                        text = { Text("No games published yet") },
+                        text = { Text(stringResource(R.string.admin_no_games_published)) },
                         onClick = { expanded = false }
                     )
                 } else {
@@ -567,7 +573,7 @@ fun UploadKeysForm(
                                 Column {
                                     Text(game.title, fontWeight = FontWeight.Bold)
                                     Text(
-                                        "Stock: ${game.availableStock} • $${"%.2f".format(game.currentPrice)}",
+                                        "${game.availableStock} • $${"%.2f".format(game.currentPrice)}",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -586,7 +592,7 @@ fun UploadKeysForm(
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
-            text = "Activation Keys",
+            text = stringResource(R.string.admin_activation_keys_title),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold
         )
@@ -594,13 +600,17 @@ fun UploadKeysForm(
         OutlinedTextField(
             value = rawKeysText,
             onValueChange = { rawKeysText = it },
-            label = { Text("Paste Keys (separated by lines or commas)") },
+            label = { Text(stringResource(R.string.admin_paste_keys_label)) },
             placeholder = { Text("STEAM-AAAA-BBBB-CCCC\nSTEAM-XXXX-YYYY-ZZZZ") },
             minLines = 4,
             maxLines = 8,
             supportingText = {
                 Text(
-                    text = if (parsedKeys.isEmpty()) "Enter at least 1 activation key" else "${parsedKeys.size} valid key(s) detected",
+                    text = if (parsedKeys.isEmpty()) {
+                        stringResource(R.string.admin_enter_at_least_one_key)
+                    } else {
+                        stringResource(R.string.admin_keys_detected, parsedKeys.size)
+                    },
                     color = if (parsedKeys.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
                 )
@@ -630,12 +640,16 @@ fun UploadKeysForm(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Uploading Keys...")
+                Text(stringResource(R.string.admin_uploading_keys))
             } else {
                 Icon(Icons.Rounded.Key, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (parsedKeys.isEmpty()) "Upload Keys" else "Upload ${parsedKeys.size} Key(s)",
+                    text = if (parsedKeys.isEmpty()) {
+                        stringResource(R.string.admin_action_upload_keys)
+                    } else {
+                        stringResource(R.string.admin_action_upload_n_keys, parsedKeys.size)
+                    },
                     fontWeight = FontWeight.Bold
                 )
             }

@@ -31,19 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
-import com.anasdev.gamestoreandroid.data.remote.KtorClient
-
-fun resolveImageUrl(path: String?): String? {
-    if (path.isNullOrBlank()) return null
-    val trimmed = path.trim()
-    return if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
-        trimmed
-    } else {
-        val base = KtorClient.BASE_URL.trimEnd('/')
-        val relative = trimmed.trimStart('/')
-        "$base/$relative"
-    }
-}
 
 @Composable
 fun GameCoverImage(
@@ -54,10 +41,9 @@ fun GameCoverImage(
     contentScale: ContentScale = ContentScale.Crop
 ) {
     val context = LocalContext.current
-    val resolvedUrl = remember(imagePath) { resolveImageUrl(imagePath) }
-    val imageRequest = remember(resolvedUrl) {
+    val imageRequest = remember(imagePath) {
         ImageRequest.Builder(context)
-            .data(resolvedUrl)
+            .data(imagePath?.takeIf { it.isNotBlank() })
             .crossfade(true)
             .crossfade(350)
             .build()
@@ -90,7 +76,7 @@ fun ImageShimmerPlaceholder(
         initialValue = 0.25f,
         targetValue = 0.65f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 850, easing = LinearEasing),
+            animation = tween(durationMillis = 900, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "shimmerAlpha"
@@ -98,16 +84,16 @@ fun ImageShimmerPlaceholder(
 
     Box(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = alpha)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.SportsEsports,
-            contentDescription = null,
-            modifier = Modifier.size(36.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
-        )
-    }
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha),
+                        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = alpha * 0.7f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha)
+                    )
+                )
+            )
+    )
 }
 
 @Composable
@@ -120,8 +106,8 @@ fun ImageFallbackBox(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surfaceContainerHighest,
-                        MaterialTheme.colorScheme.surfaceVariant
+                        MaterialTheme.colorScheme.surfaceContainerHigh,
+                        MaterialTheme.colorScheme.surfaceContainerLowest
                     )
                 )
             ),
@@ -129,23 +115,21 @@ fun ImageFallbackBox(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(12.dp)
         ) {
             Icon(
                 imageVector = Icons.Rounded.SportsEsports,
                 contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                modifier = Modifier.size(40.dp)
             )
-            if (title.isNotBlank()) {
-                Text(
-                    text = title.take(1).uppercase(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }

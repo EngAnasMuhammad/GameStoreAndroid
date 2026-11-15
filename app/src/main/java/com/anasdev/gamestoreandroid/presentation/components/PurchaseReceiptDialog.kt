@@ -12,9 +12,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.anasdev.gamestoreandroid.R
 import com.anasdev.gamestoreandroid.domain.model.OrderReceiptResponse
 
 @Composable
@@ -24,12 +26,12 @@ fun PurchaseReceiptDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Purchase Successful!", fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(R.string.receipt_title), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Total Paid: $${receipt.totalAmount}", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.receipt_total_paid, receipt.totalAmount), fontWeight = FontWeight.Bold)
                 HorizontalDivider()
-                Text("Your Activation Keys:", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.receipt_activation_keys), style = MaterialTheme.typography.labelLarge)
                 receipt.items.forEach { item ->
                     Surface(
                         color = MaterialTheme.colorScheme.secondaryContainer,
@@ -51,8 +53,9 @@ fun PurchaseReceiptDialog(
         },
         confirmButton = {
             Button(onClick = onDismiss) {
-                Text("Done")
+                Text(stringResource(R.string.action_done))
             }
         }
     )
 }
+

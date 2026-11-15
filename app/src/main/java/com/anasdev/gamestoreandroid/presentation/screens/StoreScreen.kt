@@ -37,15 +37,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.anasdev.gamestoreandroid.R
 import com.anasdev.gamestoreandroid.domain.model.GameResponse
 import com.anasdev.gamestoreandroid.presentation.components.GameCoverImage
-import com.anasdev.gamestoreandroid.presentation.components.resolveImageUrl
 import com.anasdev.gamestoreandroid.presentation.state.GameStoreViewModel
 
 @Composable
@@ -82,14 +82,14 @@ fun StoreScreen(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "No games available right now.",
+                        text = stringResource(R.string.store_no_games),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Button(onClick = { viewModel.loadGames() }) {
                         Icon(Icons.Rounded.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.size(8.dp))
-                        Text("Reload Store")
+                        Text(stringResource(R.string.store_reload))
                     }
                 }
             }
@@ -163,7 +163,7 @@ fun GameGridCard(
                         .padding(8.dp)
                 ) {
                     Text(
-                        text = "Sold Out",
+                        text = stringResource(R.string.store_sold_out),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onErrorContainer,
@@ -219,7 +219,7 @@ fun GameGridCard(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = if (inStock) "Stock: ${game.availableStock}" else "Out of stock",
+                            text = if (inStock) stringResource(R.string.store_stock_count, game.availableStock) else stringResource(R.string.store_out_of_stock),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (inStock) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.Medium
@@ -237,7 +237,7 @@ fun GameGridCard(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.AddShoppingCart,
-                            contentDescription = if (isLoggedIn) "Add to Cart" else "Login to Buy",
+                            contentDescription = if (isLoggedIn) stringResource(R.string.store_add_to_cart) else stringResource(R.string.store_login_to_buy),
                             modifier = Modifier.size(18.dp)
                         )
                     }
