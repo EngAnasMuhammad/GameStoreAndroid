@@ -136,4 +136,8 @@
     <string name="cart_expired">منتهي الصلاحية</string>
     <string name="cart_locked_until">محجوز حتى: %1$s</string>
     <string name="cd_account">الحساب</string>
+
+    <!-- Demo Disclaimer -->
+    <string name="demo_disclaimer_banner">متجر تجريبي — المفاتيح المعروضة هي رموز تفعيل تجريبية لأغراض العرض فقط. لا تتم أي مدفوعات أو عمليات شراء حقيقية.</string>
+    <string name="cart_simulated_checkout_caption">دفع تجريبي محاكى • لا توجد أي رسوم حقيقية</string>
 </resources>

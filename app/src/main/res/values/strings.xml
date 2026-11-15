@@ -135,4 +135,8 @@
     <string name="cart_expired">Expired</string>
     <string name="cart_locked_until">Locked until: %1$s</string>
     <string name="cd_account">Account</string>
+
+    <!-- Demo Disclaimer -->
+    <string name="demo_disclaimer_banner">Demo Storefront — Keys are mock activation codes generated for showcase purposes. No real payment or purchase takes place.</string>
+    <string name="cart_simulated_checkout_caption">Simulated checkout • No real charges</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.anasdev.gamestoreandroid.presentation.components
 
+import android.content.res.Configuration
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.PostAdd
 import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -63,11 +65,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -95,13 +99,16 @@ fun AdminSheet(
     onClearSuccess: () -> Unit,
     onClearUploadedImage: () -> Unit = {}
 ) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Add Game, 1 = Upload Keys
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) } // 0 = Add Game, 1 = Upload Keys
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         sheetGesturesEnabled = false,
+        sheetMaxWidth = if (isLandscape) 840.dp else BottomSheetDefaults.SheetMaxWidth,
         modifier = Modifier
             .navigationBarsPadding()
             .imePadding()
@@ -112,7 +119,7 @@ fun AdminSheet(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Header with explicit Close button
             Row(
@@ -201,12 +208,14 @@ fun AdminSheet(
                 0 -> AddGameForm(
                     isLoading = isLoading,
                     successMessage = successMessage,
+                    isLandscape = isLandscape,
                     onSubmit = onCreateGame
                 )
                 1 -> UploadKeysForm(
                     games = games,
                     isLoading = isLoading,
                     successMessage = successMessage,
+                    isLandscape = isLandscape,
                     onSubmit = onUploadKeys
                 )
             }
@@ -218,17 +227,18 @@ fun AdminSheet(
 fun AddGameForm(
     isLoading: Boolean,
     successMessage: String?,
+    isLandscape: Boolean = false,
     onSubmit: (CreateGameRequest, ByteArray?) -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var genre by remember { mutableStateOf("") }
-    var releaseDate by remember { mutableStateOf("2024-01-01") }
-    var priceStr by remember { mutableStateOf("") }
-    var localSelectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var title by rememberSaveable { mutableStateOf("") }
+    var description by rememberSaveable { mutableStateOf("") }
+    var genre by rememberSaveable { mutableStateOf("") }
+    var releaseDate by rememberSaveable { mutableStateOf("2024-01-01") }
+    var priceStr by rememberSaveable { mutableStateOf("") }
+    var localSelectedImageUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     var isCompressing by remember { mutableStateOf(false) }
 
     // Launcher for picking images locally without immediate network upload
@@ -262,189 +272,139 @@ fun AddGameForm(
 
     val isSubmitting = isLoading || isCompressing
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Image Picker Box Section (16:9 Aspect Ratio with ContentScale.Crop)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.admin_cover_image_label),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-            if (localSelectedImageUri != null) {
-                Text(
-                    text = stringResource(R.string.admin_ready_to_upload),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(12.dp))
-                .border(
-                    width = 1.dp,
-                    color = if (localSelectedImageUri != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .clickable(enabled = !isSubmitting) {
-                    photoPickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            )
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+    val imagePickerCard: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Text(
+                    text = stringResource(R.string.admin_cover_image_label),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
                 if (localSelectedImageUri != null) {
-                    // Local Image preview using Coil with uniform ContentScale.Crop
-                    AsyncImage(
-                        model = localSelectedImageUri,
-                        contentDescription = "Cover Image Preview",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                    Text(
+                        text = stringResource(R.string.admin_ready_to_upload),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
                     )
+                }
+            }
 
-                    // Subtle scrim overlay for action buttons
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.25f))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(
+                        width = 1.dp,
+                        color = if (localSelectedImageUri != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                        shape = RoundedCornerShape(12.dp)
                     )
+                    .clickable(enabled = !isSubmitting) {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                )
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (localSelectedImageUri != null) {
+                        AsyncImage(
+                            model = localSelectedImageUri,
+                            contentDescription = "Cover Image Preview",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
 
-                    // Action buttons: Remove & Change Image
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                            modifier = Modifier.clickable { localSelectedImageUri = null }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.25f))
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                                modifier = Modifier.clickable { localSelectedImageUri = null }
                             ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.DeleteOutline,
-                                    contentDescription = stringResource(R.string.admin_remove_image),
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = stringResource(R.string.admin_remove_image),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.DeleteOutline,
+                                        contentDescription = stringResource(R.string.admin_remove_image),
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.admin_remove_image),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    photoPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                },
+                                shape = RoundedCornerShape(50)
+                            ) {
+                                Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(stringResource(R.string.admin_change_image), style = MaterialTheme.typography.labelSmall)
                             }
                         }
-
-                        OutlinedButton(
-                            onClick = {
-                                photoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
-                            shape = RoundedCornerShape(50)
+                    } else {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(16.dp)
                         ) {
-                            Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.admin_change_image), style = MaterialTheme.typography.labelSmall)
+                            Icon(
+                                imageVector = Icons.Rounded.AddPhotoAlternate,
+                                contentDescription = stringResource(R.string.admin_tap_to_choose_image),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(44.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.admin_tap_to_choose_image),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = stringResource(R.string.admin_image_format_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    }
-                } else {
-                    // Empty Picker Prompt
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AddPhotoAlternate,
-                            contentDescription = stringResource(R.string.admin_tap_to_choose_image),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(44.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.admin_tap_to_choose_image),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = stringResource(R.string.admin_image_format_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
                 }
             }
         }
+    }
 
-        OutlinedTextField(
-            value = title,
-            onValueChange = { title = it },
-            label = { Text(stringResource(R.string.admin_field_title)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = genre,
-            onValueChange = { genre = it },
-            label = { Text(stringResource(R.string.admin_field_genre)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = releaseDate,
-            onValueChange = { releaseDate = it },
-            label = { Text(stringResource(R.string.admin_field_release_date)) },
-            isError = releaseDate.isNotBlank() && !isDateValid,
-            supportingText = {
-                if (releaseDate.isNotBlank() && !isDateValid) {
-                    Text(stringResource(R.string.admin_error_date_format))
-                }
-            },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = priceStr,
-            onValueChange = { priceStr = it },
-            label = { Text(stringResource(R.string.admin_field_price)) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = description,
-            onValueChange = { description = it },
-            label = { Text(stringResource(R.string.admin_field_description)) },
-            minLines = 3,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
+    val submitButton: @Composable () -> Unit = {
         Button(
             onClick = {
                 if (isFormValid && priceDouble != null) {
@@ -502,6 +462,94 @@ fun AddGameForm(
             }
         }
     }
+
+    val fieldsContent: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text(stringResource(R.string.admin_field_title)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = genre,
+                    onValueChange = { genre = it },
+                    label = { Text(stringResource(R.string.admin_field_genre)) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+
+                OutlinedTextField(
+                    value = priceStr,
+                    onValueChange = { priceStr = it },
+                    label = { Text(stringResource(R.string.admin_field_price)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            OutlinedTextField(
+                value = releaseDate,
+                onValueChange = { releaseDate = it },
+                label = { Text(stringResource(R.string.admin_field_release_date)) },
+                isError = releaseDate.isNotBlank() && !isDateValid,
+                supportingText = {
+                    if (releaseDate.isNotBlank() && !isDateValid) {
+                        Text(stringResource(R.string.admin_error_date_format))
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text(stringResource(R.string.admin_field_description)) },
+                minLines = 3,
+                maxLines = 5,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+
+    if (isLandscape) {
+        // Landscape 2-Column Layout
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                imagePickerCard()
+                submitButton()
+            }
+
+            Column(
+                modifier = Modifier.weight(1.2f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                fieldsContent()
+            }
+        }
+    } else {
+        // Portrait Layout
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            imagePickerCard()
+            fieldsContent()
+            Spacer(modifier = Modifier.height(4.dp))
+            submitButton()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -510,11 +558,13 @@ fun UploadKeysForm(
     games: List<GameResponse>,
     isLoading: Boolean,
     successMessage: String?,
+    isLandscape: Boolean = false,
     onSubmit: (gameId: String, keys: List<String>) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var selectedGame by remember { mutableStateOf<GameResponse?>(null) }
-    var rawKeysText by remember { mutableStateOf("") }
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var selectedGameId by rememberSaveable { mutableStateOf<String?>(null) }
+    val selectedGame = remember(selectedGameId, games) { games.find { it.id == selectedGameId } }
+    var rawKeysText by rememberSaveable { mutableStateOf("") }
 
     // Clear keys input upon success
     LaunchedEffect(successMessage) {
@@ -532,94 +582,7 @@ fun UploadKeysForm(
 
     val canSubmit = selectedGame != null && parsedKeys.isNotEmpty()
 
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text(
-            text = stringResource(R.string.admin_select_target_game),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        // Dropdown menu box to select game
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
-            OutlinedTextField(
-                value = selectedGame?.let { "${it.title} (${it.availableStock})" } ?: "",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(stringResource(R.string.admin_choose_game)) },
-                placeholder = { Text(stringResource(R.string.admin_tap_to_select_game)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-            )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                if (games.isEmpty()) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.admin_no_games_published)) },
-                        onClick = { expanded = false }
-                    )
-                } else {
-                    games.forEach { game ->
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(game.title, fontWeight = FontWeight.Bold)
-                                    Text(
-                                        "${game.availableStock} • $${"%.2f".format(game.currentPrice)}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            },
-                            onClick = {
-                                selectedGame = game
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = stringResource(R.string.admin_activation_keys_title),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        OutlinedTextField(
-            value = rawKeysText,
-            onValueChange = { rawKeysText = it },
-            label = { Text(stringResource(R.string.admin_paste_keys_label)) },
-            placeholder = { Text("STEAM-AAAA-BBBB-CCCC\nSTEAM-XXXX-YYYY-ZZZZ") },
-            minLines = 4,
-            maxLines = 8,
-            supportingText = {
-                Text(
-                    text = if (parsedKeys.isEmpty()) {
-                        stringResource(R.string.admin_enter_at_least_one_key)
-                    } else {
-                        stringResource(R.string.admin_keys_detected, parsedKeys.size)
-                    },
-                    color = if (parsedKeys.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
+    val submitButton: @Composable () -> Unit = {
         Button(
             onClick = {
                 val game = selectedGame
@@ -653,6 +616,126 @@ fun UploadKeysForm(
                     fontWeight = FontWeight.Bold
                 )
             }
+        }
+    }
+
+    val dropdownSelector: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = stringResource(R.string.admin_select_target_game),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = selectedGame?.let { "${it.title} (${it.availableStock})" } ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(stringResource(R.string.admin_choose_game)) },
+                    placeholder = { Text(stringResource(R.string.admin_tap_to_select_game)) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                )
+
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    if (games.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.admin_no_games_published)) },
+                            onClick = { expanded = false }
+                        )
+                    } else {
+                        games.forEach { game ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(game.title, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            "${game.availableStock} • $${"%.2f".format(game.currentPrice)}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    selectedGameId = game.id
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    val keysInputField: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = stringResource(R.string.admin_activation_keys_title),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            OutlinedTextField(
+                value = rawKeysText,
+                onValueChange = { rawKeysText = it },
+                label = { Text(stringResource(R.string.admin_paste_keys_label)) },
+                placeholder = { Text("STEAM-AAAA-BBBB-CCCC\nSTEAM-XXXX-YYYY-ZZZZ") },
+                minLines = if (isLandscape) 3 else 4,
+                maxLines = 8,
+                supportingText = {
+                    Text(
+                        text = if (parsedKeys.isEmpty()) {
+                            stringResource(R.string.admin_enter_at_least_one_key)
+                        } else {
+                            stringResource(R.string.admin_keys_detected, parsedKeys.size)
+                        },
+                        color = if (parsedKeys.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+
+    if (isLandscape) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                dropdownSelector()
+                Spacer(modifier = Modifier.height(4.dp))
+                submitButton()
+            }
+
+            Column(
+                modifier = Modifier.weight(1.2f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                keysInputField()
+            }
+        }
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            dropdownSelector()
+            keysInputField()
+            Spacer(modifier = Modifier.height(4.dp))
+            submitButton()
         }
     }
 }

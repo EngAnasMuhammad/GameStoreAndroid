@@ -1,12 +1,25 @@
 package com.anasdev.gamestoreandroid.presentation.ui.screens
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.ShoppingCart
+import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -14,21 +27,28 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,12 +73,24 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
     val profilePictureUrl by viewModel.profilePictureUrlFlow.collectAsState(initial = null)
     val isLoggedIn = !token.isNullOrBlank()
 
-    var selectedTab by remember { mutableIntStateOf(0) }
-    var showAuthDialog by remember { mutableStateOf(false) }
-    var showCartSheet by remember { mutableStateOf(false) }
-    var showAdminSheet by remember { mutableStateOf(false) }
-    var selectedGameForDetails by remember { mutableStateOf<GameResponse?>(null) }
-    var authErrorMessage by remember { mutableStateOf<String?>(null) }
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val scrollBehavior = if (isLandscape) {
+        TopAppBarDefaults.enterAlwaysScrollBehavior()
+    } else {
+        TopAppBarDefaults.pinnedScrollBehavior()
+    }
+
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var showAuthDialog by rememberSaveable { mutableStateOf(false) }
+    var showCartSheet by rememberSaveable { mutableStateOf(false) }
+    var showAdminSheet by rememberSaveable { mutableStateOf(false) }
+    var selectedGameIdForDetails by rememberSaveable { mutableStateOf<String?>(null) }
+    var authErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val selectedGameForDetails = selectedGameIdForDetails?.let { id ->
+        uiState.games.find { it.id == id }
+    }
 
     // Automatically close Cart sheet when a receipt is generated so it doesn't overlap
     LaunchedEffect(uiState.latestReceipt) {
@@ -67,86 +99,137 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = when (selectedTab) {
-                            0 -> stringResource(R.string.app_name)
-                            1 -> stringResource(R.string.nav_orders)
-                            else -> stringResource(R.string.nav_settings)
-                        },
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    when (selectedTab) {
-                        0 -> {
-                            // Cart Icon with Badge
-                            IconButton(onClick = {
-                                if (isLoggedIn) {
-                                    viewModel.loadCart()
-                                }
-                                showCartSheet = true
-                            }) {
-                                BadgedBox(
-                                    badge = {
-                                        if (uiState.cartItems.isNotEmpty()) {
-                                            Badge {
-                                                Text("${uiState.cartItems.size}")
-                                            }
+    val topBarContent: @Composable () -> Unit = {
+        TopAppBar(
+            scrollBehavior = scrollBehavior,
+            title = {
+                Text(
+                    text = when (selectedTab) {
+                        0 -> stringResource(R.string.app_name)
+                        1 -> stringResource(R.string.nav_orders)
+                        else -> stringResource(R.string.nav_settings)
+                    },
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            actions = {
+                when (selectedTab) {
+                    0 -> {
+                        // Cart Icon with Badge
+                        IconButton(onClick = {
+                            if (isLoggedIn) {
+                                viewModel.loadCart()
+                            }
+                            showCartSheet = true
+                        }) {
+                            BadgedBox(
+                                badge = {
+                                    if (uiState.cartItems.isNotEmpty()) {
+                                        Badge {
+                                            Text("${uiState.cartItems.size}")
                                         }
                                     }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.ShoppingCart,
-                                        contentDescription = stringResource(R.string.cart_title)
-                                    )
                                 }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.ShoppingCart,
+                                    contentDescription = stringResource(R.string.cart_title)
+                                )
                             }
+                        }
 
-                            // Profile Icon / User Avatar
-                            IconButton(onClick = {
-                                if (isLoggedIn) {
-                                    selectedTab = 2
-                                } else {
-                                    showAuthDialog = true
-                                }
-                            }) {
-                                UserAvatar(
-                                    profilePictureUrl = if (isLoggedIn) profilePictureUrl else null,
-                                    size = 30.dp,
-                                    contentDescription = stringResource(R.string.cd_account)
-                                )
+                        // Profile Icon / User Avatar
+                        IconButton(onClick = {
+                            if (isLoggedIn) {
+                                selectedTab = 2
+                            } else {
+                                showAuthDialog = true
                             }
-                        }
-                        1 -> {
-                            // Profile Icon / User Avatar
-                            IconButton(onClick = {
-                                if (isLoggedIn) {
-                                    selectedTab = 2
-                                } else {
-                                    showAuthDialog = true
-                                }
-                            }) {
-                                UserAvatar(
-                                    profilePictureUrl = if (isLoggedIn) profilePictureUrl else null,
-                                    size = 30.dp,
-                                    contentDescription = stringResource(R.string.cd_account)
-                                )
-                            }
-                        }
-                        2 -> {
-                            // Settings Tab: No extra top actions
+                        }) {
+                            UserAvatar(
+                                profilePictureUrl = if (isLoggedIn) profilePictureUrl else null,
+                                size = 30.dp,
+                                contentDescription = stringResource(R.string.cd_account)
+                            )
                         }
                     }
+                    1 -> {
+                        // Profile Icon / User Avatar
+                        IconButton(onClick = {
+                            if (isLoggedIn) {
+                                selectedTab = 2
+                            } else {
+                                showAuthDialog = true
+                            }
+                        }) {
+                            UserAvatar(
+                                profilePictureUrl = if (isLoggedIn) profilePictureUrl else null,
+                                size = 30.dp,
+                                contentDescription = stringResource(R.string.cd_account)
+                            )
+                        }
+                    }
+                    2 -> {
+                        // Settings Tab: No extra top actions
+                    }
+                }
+            }
+        )
+    }
+
+    val screenBody: @Composable (PaddingValues) -> Unit = { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            when (selectedTab) {
+                0 -> StoreScreen(
+                    viewModel = viewModel,
+                    onGameClick = { game ->
+                        selectedGameIdForDetails = game.id
+                    },
+                    onRequireLogin = { showAuthDialog = true }
+                )
+                1 -> OrdersScreen(
+                    viewModel = viewModel,
+                    onRequireLogin = { showAuthDialog = true }
+                )
+                2 -> SettingsScreen(
+                    viewModel = viewModel,
+                    onRequireLogin = { showAuthDialog = true },
+                    onOpenAdminDashboard = { showAdminSheet = true }
+                )
+            }
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(
+                if (isLandscape) {
+                    Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                } else {
+                    Modifier
                 }
             )
-        },
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
+    ) {
+        if (isLandscape) {
+            NavigationRail(
+                header = {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Icon(
+                        imageVector = Icons.Rounded.SportsEsports,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                },
+                modifier = Modifier.fillMaxHeight()
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+                NavigationRailItem(
                     selected = selectedTab == 0,
                     onClick = {
                         selectedTab = 0
@@ -160,7 +243,7 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                     },
                     label = { Text(stringResource(R.string.nav_store)) }
                 )
-                NavigationBarItem(
+                NavigationRailItem(
                     selected = selectedTab == 1,
                     onClick = {
                         selectedTab = 1
@@ -174,11 +257,9 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                     },
                     label = { Text(stringResource(R.string.nav_orders)) }
                 )
-                NavigationBarItem(
+                NavigationRailItem(
                     selected = selectedTab == 2,
-                    onClick = {
-                        selectedTab = 2
-                    },
+                    onClick = { selectedTab = 2 },
                     icon = {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
@@ -187,30 +268,67 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                     },
                     label = { Text(stringResource(R.string.nav_settings)) }
                 )
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
-    ) { innerPadding ->
-        Box(
+
+        Scaffold(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when (selectedTab) {
-                0 -> StoreScreen(
-                    viewModel = viewModel,
-                    onGameClick = { game -> selectedGameForDetails = game },
-                    onRequireLogin = { showAuthDialog = true }
-                )
-                1 -> OrdersScreen(
-                    viewModel = viewModel,
-                    onRequireLogin = { showAuthDialog = true }
-                )
-                2 -> SettingsScreen(
-                    viewModel = viewModel,
-                    onRequireLogin = { showAuthDialog = true },
-                    onOpenAdminDashboard = { showAdminSheet = true }
-                )
+                .weight(1f)
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
+            topBar = topBarContent,
+            bottomBar = {
+                if (!isLandscape) {
+                    NavigationBar {
+                        NavigationBarItem(
+                            selected = selectedTab == 0,
+                            onClick = {
+                                selectedTab = 0
+                                viewModel.loadGames()
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.Storefront,
+                                    contentDescription = stringResource(R.string.nav_store)
+                                )
+                            },
+                            label = { Text(stringResource(R.string.nav_store)) }
+                        )
+                        NavigationBarItem(
+                            selected = selectedTab == 1,
+                            onClick = {
+                                selectedTab = 1
+                                if (isLoggedIn) viewModel.loadOrders()
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
+                                    contentDescription = stringResource(R.string.nav_orders)
+                                )
+                            },
+                            label = { Text(stringResource(R.string.nav_orders)) }
+                        )
+                        NavigationBarItem(
+                            selected = selectedTab == 2,
+                            onClick = { selectedTab = 2 },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.Settings,
+                                    contentDescription = stringResource(R.string.nav_settings)
+                                )
+                            },
+                            label = { Text(stringResource(R.string.nav_settings)) }
+                        )
+                    }
+                }
+            },
+            contentWindowInsets = if (isLandscape) {
+                WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.End)
+            } else {
+                ScaffoldDefaults.contentWindowInsets
             }
+        ) { innerPadding ->
+            screenBody(innerPadding)
         }
     }
 
@@ -272,12 +390,14 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
         GameDetailsSheet(
             game = liveGame,
             isLoggedIn = isLoggedIn,
-            onDismiss = { selectedGameForDetails = null },
+            onDismiss = {
+                selectedGameIdForDetails = null
+            },
             onAddToCart = { gameId, onResult ->
                 if (isLoggedIn) {
                     viewModel.addToCart(gameId, onResult)
                 } else {
-                    selectedGameForDetails = null
+                    selectedGameIdForDetails = null
                     showAuthDialog = true
                 }
             }

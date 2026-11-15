@@ -1,7 +1,7 @@
 package com.anasdev.gamestoreandroid.presentation.screens
 
+import android.content.Context
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddShoppingCart
@@ -35,10 +36,12 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,11 +56,33 @@ fun StoreScreen(
     viewModel: GameStoreViewModel,
     onGameClick: (GameResponse) -> Unit,
     onRequireLogin: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val token by viewModel.tokenFlow.collectAsState(initial = null)
     val isLoggedIn = !token.isNullOrBlank()
+    val games = uiState.games
+    val gridState = rememberLazyGridState()
+
+    // Propagate application context once instead of querying LocalContext per lazy card
+    val context = LocalContext.current.applicationContext
+
+    // Hoist common surface-based gradient brush so every card reuses the same instance
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val cardGradientBrush = remember(surfaceColor) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.Transparent,
+                surfaceColor.copy(alpha = 0.70f),
+                surfaceColor.copy(alpha = 0.95f)
+            )
+        )
+    }
+
+    // Hoist stable callback to avoid lambda re-allocation per item on recomposition
+    val onAddToCart: (String) -> Unit = remember(viewModel) {
+        { gameId -> viewModel.addToCart(gameId) }
+    }
 
     PullToRefreshBox(
         isRefreshing = uiState.isLoading,
@@ -95,24 +120,26 @@ fun StoreScreen(
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+                columns = GridCells.Adaptive(minSize = 156.dp),
+                state = gridState,
                 contentPadding = PaddingValues(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(uiState.games, key = { it.id }) { game ->
+                items(
+                    items = games,
+                    key = { it.id },
+                    contentType = { "game_card" }
+                ) { game ->
                     GameGridCard(
                         game = game,
                         isLoggedIn = isLoggedIn,
-                        onClick = { onGameClick(game) },
-                        onAddToCart = {
-                            if (isLoggedIn) {
-                                viewModel.addToCart(game.id)
-                            } else {
-                                onRequireLogin()
-                            }
-                        }
+                        gradientBrush = cardGradientBrush,
+                        context = context,
+                        onGameClick = onGameClick,
+                        onAddToCart = onAddToCart,
+                        onRequireLogin = onRequireLogin
                     )
                 }
             }
@@ -124,21 +151,27 @@ fun StoreScreen(
 fun GameGridCard(
     game: GameResponse,
     isLoggedIn: Boolean,
-    onClick: () -> Unit,
-    onAddToCart: () -> Unit,
+    gradientBrush: Brush,
+    context: Context,
+    onGameClick: (GameResponse) -> Unit,
+    onAddToCart: (String) -> Unit,
+    onRequireLogin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val inStock = game.availableStock > 0
+    val formattedPrice = remember(game.currentPrice) {
+        "$${"%.2f".format(game.currentPrice)}"
+    }
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        onClick = { onGameClick(game) },
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        // Flat 0.dp elevation eliminates dynamic GPU shadow overdraw during rapid scrolling
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(
             modifier = Modifier
@@ -150,6 +183,7 @@ fun GameGridCard(
                 imagePath = game.imagePath,
                 title = game.title,
                 isDimmed = !inStock,
+                context = context,
                 modifier = Modifier.fillMaxSize()
             )
 
@@ -177,15 +211,7 @@ fun GameGridCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                            )
-                        )
-                    )
+                    .background(gradientBrush)
                     .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 Text(
@@ -213,7 +239,7 @@ fun GameGridCard(
                 ) {
                     Column {
                         Text(
-                            text = "$${"%.2f".format(game.currentPrice)}",
+                            text = formattedPrice,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -227,7 +253,13 @@ fun GameGridCard(
                     }
 
                     FilledTonalIconButton(
-                        onClick = onAddToCart,
+                        onClick = {
+                            if (isLoggedIn) {
+                                onAddToCart(game.id)
+                            } else {
+                                onRequireLogin()
+                            }
+                        },
                         enabled = inStock,
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,

@@ -62,6 +62,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: GameTrade ${{ github.ref_name }}
           files: app/build/outputs/apk/release/*.apk
           generate_release_notes: true
           draft: false

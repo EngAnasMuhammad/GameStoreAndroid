@@ -1,5 +1,6 @@
 package com.anasdev.gamestoreandroid.presentation.components
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -13,8 +14,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -25,6 +26,8 @@ import androidx.compose.material.icons.rounded.AddShoppingCart
 import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -44,11 +47,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -68,11 +72,13 @@ fun GameDetailsSheet(
 ) {
     if (game == null) return
 
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var isAddingToCart by remember { mutableStateOf(false) }
-    var isAddedSuccess by remember { mutableStateOf(false) }
-    var localAvailableStock by remember(game.id) { mutableIntStateOf(game.availableStock) }
+    var isAddingToCart by rememberSaveable { mutableStateOf(false) }
+    var isAddedSuccess by rememberSaveable { mutableStateOf(false) }
+    var localAvailableStock by rememberSaveable(game.id) { mutableIntStateOf(game.availableStock) }
 
     // Keep local stock aligned if game model stock updates externally
     LaunchedEffect(game.availableStock) {
@@ -89,52 +95,41 @@ fun GameDetailsSheet(
 
     val inStock = localAvailableStock > 0
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 36.dp)
+    val coverArtwork: @Composable (Modifier, Float) -> Unit = { modifier, ratio ->
+        Box(
+            modifier = modifier
+                .aspectRatio(ratio)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
         ) {
-            // Large Rounded Cover Image Banner
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            ) {
-                GameCoverImage(
-                    imagePath = game.imagePath,
-                    title = game.title,
-                    isDimmed = !inStock
-                )
+            GameCoverImage(
+                imagePath = game.imagePath,
+                title = game.title,
+                isDimmed = !inStock
+            )
 
-                if (!inStock) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f),
-                        shape = RoundedCornerShape(percent = 50),
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.store_sold_out),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
+            if (!inStock) {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f),
+                    shape = RoundedCornerShape(percent = 50),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.store_sold_out),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
                 }
             }
+        }
+    }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+    val detailsPaneContent: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             // Prominent Title
             Text(
                 text = game.title,
@@ -142,9 +137,7 @@ fun GameDetailsSheet(
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Metadata Chips (Genre & Release Date) - Uses FlowRow & clean date to prevent ugly wrapping
+            // Metadata Chips (Genre & Release Date)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -174,8 +167,6 @@ fun GameDetailsSheet(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Transient confirmation banner when item is locked & added to cart
             AnimatedVisibility(
                 visible = isAddedSuccess,
@@ -185,9 +176,7 @@ fun GameDetailsSheet(
                 Surface(
                     color = MaterialTheme.colorScheme.tertiaryContainer,
                     shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -306,9 +295,33 @@ fun GameDetailsSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(16.dp))
+            // Section 5: Demo / Simulated Keys Disclaimer Banner
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.demo_disclaimer_banner),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 18.sp
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             // Scrollable Description Section
             Text(
@@ -316,8 +329,6 @@ fun GameDetailsSheet(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = if (!game.description.isNullOrBlank()) {
@@ -329,6 +340,53 @@ fun GameDetailsSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 22.sp
             )
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        sheetMaxWidth = if (isLandscape) 820.dp else BottomSheetDefaults.SheetMaxWidth
+    ) {
+        if (isLandscape) {
+            // Two-Pane Landscape Layout: Left Artwork (40%) + Right Scrollable Details (60%)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(0.40f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    coverArtwork(Modifier.fillMaxWidth(), 0.85f)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(0.60f)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    detailsPaneContent()
+                }
+            }
+        } else {
+            // Single-Column Portrait Layout
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 36.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                coverArtwork(Modifier.fillMaxWidth(), 16f / 9f)
+                detailsPaneContent()
+            }
         }
     }
 }
