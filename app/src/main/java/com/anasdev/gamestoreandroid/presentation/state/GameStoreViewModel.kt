@@ -28,8 +28,21 @@ data class GameStoreUiState(
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val isUploadingImage: Boolean = false,
-    val uploadedImagePath: String? = null
-)
+    val uploadedImagePath: String? = null,
+    val searchQuery: String = "",
+    val featuredGames: List<GameResponse> = emptyList()
+) {
+    val filteredGames: List<GameResponse>
+        get() {
+            val trimmed = searchQuery.trim()
+            val sorted = games.sortedBy { it.title.lowercase() }
+            if (trimmed.isEmpty()) return sorted
+            return sorted.filter { game ->
+                game.title.contains(trimmed, ignoreCase = true) ||
+                game.genre.contains(trimmed, ignoreCase = true)
+            }
+        }
+}
 
 class GameStoreViewModel(
     private val repository: GameStoreRepository,
@@ -82,13 +95,32 @@ class GameStoreViewModel(
         }
     }
 
+    fun onSearchQueryChange(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+    }
+
     fun loadGames() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             repository.getAllGames()
                 .onSuccess { gameList ->
-                    _uiState.update { it.copy(isLoading = false, games = gameList) }
+                    val sortedList = gameList.sortedBy { it.title.lowercase() }
+                    val currentFeatured = _uiState.value.featuredGames
+                    val featured = if (currentFeatured.isEmpty()) {
+                        sortedList.shuffled().take(5)
+                    } else {
+                        currentFeatured.map { featuredGame ->
+                            sortedList.find { it.id == featuredGame.id } ?: featuredGame
+                        }
+                    }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            games = sortedList,
+                            featuredGames = featured
+                        )
+                    }
                 }
                 .onFailure { error ->
                     _uiState.update {
@@ -211,15 +243,26 @@ class GameStoreViewModel(
             repository.lockKeyForCart(gameId)
                 .onSuccess { lockedItem ->
                     _uiState.update { current ->
+                        val updatedGames = current.games.map { game ->
+                            if (game.id == gameId) {
+                                game.copy(availableStock = (game.availableStock - 1).coerceAtLeast(0))
+                            } else {
+                                game
+                            }
+                        }.sortedBy { it.title.lowercase() }
+
+                        val updatedFeatured = current.featuredGames.map { game ->
+                            if (game.id == gameId) {
+                                game.copy(availableStock = (game.availableStock - 1).coerceAtLeast(0))
+                            } else {
+                                game
+                            }
+                        }
+
                         current.copy(
                             cartItems = current.cartItems + lockedItem,
-                            games = current.games.map { game ->
-                                if (game.id == gameId) {
-                                    game.copy(availableStock = (game.availableStock - 1).coerceAtLeast(0))
-                                } else {
-                                    game
-                                }
-                            }
+                            games = updatedGames,
+                            featuredGames = updatedFeatured
                         )
                     }
                     onResult?.invoke(true)
@@ -244,20 +287,35 @@ class GameStoreViewModel(
             repository.removeFromCart(keyId)
                 .onSuccess {
                     _uiState.update { current ->
+                        val updatedGames = if (gameId != null) {
+                            current.games.map { game ->
+                                if (game.id == gameId) {
+                                    game.copy(availableStock = game.availableStock + 1)
+                                } else {
+                                    game
+                                }
+                            }.sortedBy { it.title.lowercase() }
+                        } else {
+                            current.games
+                        }
+
+                        val updatedFeatured = if (gameId != null) {
+                            current.featuredGames.map { game ->
+                                if (game.id == gameId) {
+                                    game.copy(availableStock = game.availableStock + 1)
+                                } else {
+                                    game
+                                }
+                            }
+                        } else {
+                            current.featuredGames
+                        }
+
                         current.copy(
                             removingCartItemIds = current.removingCartItemIds - keyId,
                             cartItems = current.cartItems.filterNot { it.keyId == keyId },
-                            games = if (gameId != null) {
-                                current.games.map { game ->
-                                    if (game.id == gameId) {
-                                        game.copy(availableStock = game.availableStock + 1)
-                                    } else {
-                                        game
-                                    }
-                                }
-                            } else {
-                                current.games
-                            }
+                            games = updatedGames,
+                            featuredGames = updatedFeatured
                         )
                     }
                 }
@@ -331,7 +389,9 @@ class GameStoreViewModel(
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
 
             var finalImagePath = request.imagePath
-            if (imageBytes != null && imageBytes.isNotEmpty()) {
+            if (finalImagePath.isBlank() && !_uiState.value.uploadedImagePath.isNullOrBlank()) {
+                finalImagePath = _uiState.value.uploadedImagePath!!
+            } else if (finalImagePath.isBlank() && imageBytes != null && imageBytes.isNotEmpty()) {
                 val uploadResult = repository.uploadGameImage(imageBytes, "cover.jpg", "image/jpeg")
                 if (uploadResult.isFailure) {
                     _uiState.update {
@@ -342,7 +402,8 @@ class GameStoreViewModel(
                     }
                     return@launch
                 }
-                finalImagePath = uploadResult.getOrNull() ?: ""
+                finalImagePath = uploadResult.getOrNull().orEmpty()
+                _uiState.update { it.copy(uploadedImagePath = finalImagePath) }
             }
 
             val finalRequest = request.copy(imagePath = finalImagePath)

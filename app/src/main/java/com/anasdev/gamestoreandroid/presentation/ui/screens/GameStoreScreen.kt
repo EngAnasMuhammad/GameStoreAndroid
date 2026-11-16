@@ -1,6 +1,12 @@
 package com.anasdev.gamestoreandroid.presentation.ui.screens
 
 import android.content.res.Configuration
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,8 +20,10 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.SportsEsports
@@ -41,9 +49,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -53,7 +63,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.anasdev.gamestoreandroid.R
-import com.anasdev.gamestoreandroid.domain.model.GameResponse
 import com.anasdev.gamestoreandroid.presentation.components.AdminSheet
 import com.anasdev.gamestoreandroid.presentation.components.AuthDialog
 import com.anasdev.gamestoreandroid.presentation.components.CartSheet
@@ -88,6 +97,22 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
     var selectedGameIdForDetails by rememberSaveable { mutableStateOf<String?>(null) }
     var authErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
+    val storeGridState = rememberLazyGridState()
+    var searchFocusTrigger by remember { mutableIntStateOf(0) }
+
+    // Derived scroll-out state for zero-jank TopAppBar search icon animation
+    val isSearchBarScrolledOut by remember(storeGridState) {
+        derivedStateOf {
+            val searchItem = storeGridState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.key == "store_search_bar" }
+            if (searchItem == null) {
+                storeGridState.firstVisibleItemIndex > 0
+            } else {
+                (-searchItem.offset.y) >= (searchItem.size.height * 0.8f)
+            }
+        }
+    }
+
     val selectedGameForDetails = selectedGameIdForDetails?.let { id ->
         uiState.games.find { it.id == id }
     }
@@ -120,6 +145,44 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
             actions = {
                 when (selectedTab) {
                     0 -> {
+                        // Scroll-aware Search Action (visible only when search bar is scrolled out)
+                        AnimatedVisibility(
+                            visible = isSearchBarScrolledOut,
+                            enter = fadeIn(animationSpec = tween(200)) + scaleIn(
+                                initialScale = 0.8f,
+                                animationSpec = tween(200)
+                            ),
+                            exit = fadeOut(animationSpec = tween(150)) + scaleOut(
+                                targetScale = 0.8f,
+                                animationSpec = tween(150)
+                            )
+                        ) {
+                            IconButton(onClick = { searchFocusTrigger++ }) {
+                                val isSearching = uiState.searchQuery.isNotBlank()
+                                if (isSearching) {
+                                    BadgedBox(
+                                        badge = {
+                                            Badge(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(6.dp)
+                                            )
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Search,
+                                            contentDescription = stringResource(R.string.store_search_topbar_action),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Search,
+                                        contentDescription = stringResource(R.string.store_search_topbar_action)
+                                    )
+                                }
+                            }
+                        }
+
                         // Cart Icon with Badge
                         IconButton(onClick = {
                             if (isLoggedIn) {
@@ -194,7 +257,9 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                     onGameClick = { game ->
                         selectedGameIdForDetails = game.id
                     },
-                    onRequireLogin = { showAuthDialog = true }
+                    onRequireLogin = { showAuthDialog = true },
+                    gridState = storeGridState,
+                    searchFocusTrigger = searchFocusTrigger
                 )
                 1 -> OrdersScreen(
                     viewModel = viewModel,
@@ -368,9 +433,11 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
             isUploadingImage = uiState.isUploadingImage,
             uploadedImagePath = uiState.uploadedImagePath,
             successMessage = uiState.successMessage,
+            errorMessage = uiState.errorMessage,
             onDismiss = {
                 showAdminSheet = false
                 viewModel.clearSuccess()
+                viewModel.clearError()
                 viewModel.clearUploadedImage()
             },
             onCreateGame = { request, imageBytes ->
@@ -383,6 +450,7 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
                 viewModel.uploadGameImage(bytes, fileName, mimeType)
             },
             onClearSuccess = { viewModel.clearSuccess() },
+            onClearError = { viewModel.clearError() },
             onClearUploadedImage = { viewModel.clearUploadedImage() }
         )
     }

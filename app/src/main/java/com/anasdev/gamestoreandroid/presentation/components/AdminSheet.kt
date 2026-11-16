@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.PostAdd
 import androidx.compose.material.icons.rounded.VpnKey
@@ -93,11 +94,13 @@ fun AdminSheet(
     isUploadingImage: Boolean = false,
     uploadedImagePath: String? = null,
     successMessage: String?,
+    errorMessage: String? = null,
     onDismiss: () -> Unit,
     onCreateGame: (CreateGameRequest, ByteArray?) -> Unit,
     onUploadKeys: (gameId: String, keys: List<String>) -> Unit,
     onUploadImage: (bytes: ByteArray, fileName: String, mimeType: String) -> Unit = { _, _, _ -> },
     onClearSuccess: () -> Unit,
+    onClearError: () -> Unit = {},
     onClearUploadedImage: () -> Unit = {}
 ) {
     val configuration = LocalConfiguration.current
@@ -166,6 +169,7 @@ fun AdminSheet(
                     onClick = {
                         selectedTab = 0
                         onClearSuccess()
+                        onClearError()
                     },
                     text = { Text(stringResource(R.string.admin_tab_add_game)) },
                     icon = { Icon(Icons.Rounded.PostAdd, contentDescription = null) }
@@ -175,6 +179,7 @@ fun AdminSheet(
                     onClick = {
                         selectedTab = 1
                         onClearSuccess()
+                        onClearError()
                     },
                     text = { Text(stringResource(R.string.admin_tab_upload_keys)) },
                     icon = { Icon(Icons.Rounded.VpnKey, contentDescription = null) }
@@ -210,12 +215,62 @@ fun AdminSheet(
                 }
             }
 
+            // In-sheet visible error banner
+            if (!errorMessage.isNullOrBlank()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ErrorOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = errorMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        IconButton(
+                            onClick = onClearError,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = stringResource(R.string.action_cancel),
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             when (selectedTab) {
                 0 -> AddGameForm(
                     isLoading = isLoading,
+                    uploadedImagePath = uploadedImagePath,
                     successMessage = successMessage,
                     isLandscape = isLandscape,
-                    onSubmit = onCreateGame
+                    onSubmit = onCreateGame,
+                    onClearUploadedImage = onClearUploadedImage
                 )
                 1 -> UploadKeysForm(
                     games = games,
@@ -233,9 +288,11 @@ fun AdminSheet(
 @Composable
 fun AddGameForm(
     isLoading: Boolean,
+    uploadedImagePath: String?,
     successMessage: String?,
     isLandscape: Boolean = false,
-    onSubmit: (CreateGameRequest, ByteArray?) -> Unit
+    onSubmit: (CreateGameRequest, ByteArray?) -> Unit,
+    onClearUploadedImage: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -246,7 +303,16 @@ fun AddGameForm(
     var releaseDate by rememberSaveable { mutableStateOf("2024-01-01") }
     var priceStr by rememberSaveable { mutableStateOf("") }
     var localSelectedImageUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var cachedUploadedImagePath by rememberSaveable { mutableStateOf(uploadedImagePath) }
     var isCompressing by remember { mutableStateOf(false) }
+    var hasAttemptedSubmit by rememberSaveable { mutableStateOf(false) }
+
+    // Sync with ViewModel's cached uploadedImagePath
+    LaunchedEffect(uploadedImagePath) {
+        if (!uploadedImagePath.isNullOrBlank()) {
+            cachedUploadedImagePath = uploadedImagePath
+        }
+    }
 
     // Launcher for picking images locally without immediate network upload
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -254,6 +320,8 @@ fun AddGameForm(
     ) { uri: Uri? ->
         if (uri != null) {
             localSelectedImageUri = uri
+            cachedUploadedImagePath = null
+            onClearUploadedImage()
         }
     }
 
@@ -266,17 +334,20 @@ fun AddGameForm(
             releaseDate = "2024-01-01"
             priceStr = ""
             localSelectedImageUri = null
+            cachedUploadedImagePath = null
+            hasAttemptedSubmit = false
+            onClearUploadedImage()
         }
     }
 
     val priceDouble = priceStr.toDoubleOrNull()
     val isDateValid = releaseDate.matches(Regex("""\d{4}-\d{2}-\d{2}"""))
-    val isFormValid = title.isNotBlank() &&
-            genre.isNotBlank() &&
-            isDateValid &&
-            priceDouble != null &&
-            priceDouble >= 0.0
+    val isTitleValid = title.isNotBlank() && title.length <= 100
+    val isGenreValid = genre.isNotBlank() && genre.length <= 30
+    val isDescriptionValid = description.isNotBlank()
+    val isPriceValid = priceDouble != null && priceDouble >= 0.0
 
+    val isFormValid = isTitleValid && isGenreValid && isDescriptionValid && isPriceValid && isDateValid
     val isSubmitting = isLoading || isCompressing
 
     val imagePickerCard: @Composable () -> Unit = {
@@ -291,7 +362,7 @@ fun AddGameForm(
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
-                if (localSelectedImageUri != null) {
+                if (localSelectedImageUri != null || !cachedUploadedImagePath.isNullOrBlank()) {
                     Text(
                         text = stringResource(R.string.admin_ready_to_upload),
                         style = MaterialTheme.typography.labelSmall,
@@ -308,7 +379,7 @@ fun AddGameForm(
                     .clip(RoundedCornerShape(12.dp))
                     .border(
                         width = 1.dp,
-                        color = if (localSelectedImageUri != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                        color = if (localSelectedImageUri != null || !cachedUploadedImagePath.isNullOrBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                         shape = RoundedCornerShape(12.dp)
                     )
                     .clickable(enabled = !isSubmitting) {
@@ -324,9 +395,9 @@ fun AddGameForm(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (localSelectedImageUri != null) {
+                    if (localSelectedImageUri != null || !cachedUploadedImagePath.isNullOrBlank()) {
                         AsyncImage(
-                            model = localSelectedImageUri,
+                            model = localSelectedImageUri ?: cachedUploadedImagePath,
                             contentDescription = "Cover Image Preview",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
@@ -347,7 +418,11 @@ fun AddGameForm(
                             Surface(
                                 shape = RoundedCornerShape(50),
                                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                                modifier = Modifier.clickable { localSelectedImageUri = null }
+                                modifier = Modifier.clickable {
+                                    localSelectedImageUri = null
+                                    cachedUploadedImagePath = null
+                                    onClearUploadedImage()
+                                }
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -414,18 +489,24 @@ fun AddGameForm(
     val submitButton: @Composable () -> Unit = {
         Button(
             onClick = {
+                hasAttemptedSubmit = true
                 if (isFormValid && priceDouble != null) {
                     coroutineScope.launch {
-                        isCompressing = true
-                        val compressedBytes = localSelectedImageUri?.let { uri ->
-                            try {
-                                ImageCompressor.compressImage(context, uri)
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                                null
+                        val compressedBytes = if (cachedUploadedImagePath.isNullOrBlank()) {
+                            isCompressing = true
+                            val bytes = localSelectedImageUri?.let { uri ->
+                                try {
+                                    ImageCompressor.compressImage(context, uri)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                    null
+                                }
                             }
+                            isCompressing = false
+                            bytes
+                        } else {
+                            null
                         }
-                        isCompressing = false
 
                         onSubmit(
                             CreateGameRequest(
@@ -433,15 +514,15 @@ fun AddGameForm(
                                 genre = genre.trim(),
                                 releaseDate = releaseDate.trim(),
                                 currentPrice = priceDouble,
-                                imagePath = "",
-                                description = description.trim().ifEmpty { null }
+                                imagePath = cachedUploadedImagePath.orEmpty(),
+                                description = description.trim()
                             ),
                             compressedBytes
                         )
                     }
                 }
             },
-            enabled = isFormValid && !isSubmitting,
+            enabled = (!hasAttemptedSubmit || isFormValid) && !isSubmitting,
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
@@ -455,7 +536,7 @@ fun AddGameForm(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (localSelectedImageUri != null) {
+                    text = if (localSelectedImageUri != null && cachedUploadedImagePath.isNullOrBlank()) {
                         stringResource(R.string.admin_publishing_with_image)
                     } else {
                         stringResource(R.string.admin_publishing)
@@ -476,6 +557,14 @@ fun AddGameForm(
                 value = title,
                 onValueChange = { title = it },
                 label = { Text(stringResource(R.string.admin_field_title)) },
+                isError = (hasAttemptedSubmit && title.isBlank()) || title.length > 100,
+                supportingText = {
+                    if (title.length > 100) {
+                        Text(stringResource(R.string.admin_error_title_length))
+                    } else if (hasAttemptedSubmit && title.isBlank()) {
+                        Text(stringResource(R.string.admin_error_title_empty))
+                    }
+                },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -488,6 +577,25 @@ fun AddGameForm(
                     value = genre,
                     onValueChange = { genre = it },
                     label = { Text(stringResource(R.string.admin_field_genre)) },
+                    isError = (hasAttemptedSubmit && genre.isBlank()) || genre.length > 30,
+                    supportingText = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            if (genre.length > 30) {
+                                Text(stringResource(R.string.admin_error_genre_length))
+                            } else if (hasAttemptedSubmit && genre.isBlank()) {
+                                Text(stringResource(R.string.admin_error_genre_empty))
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                            Text(
+                                text = "${genre.length}/30",
+                                color = if (genre.length > 30) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
@@ -496,6 +604,12 @@ fun AddGameForm(
                     value = priceStr,
                     onValueChange = { priceStr = it },
                     label = { Text(stringResource(R.string.admin_field_price)) },
+                    isError = hasAttemptedSubmit && !isPriceValid,
+                    supportingText = {
+                        if (hasAttemptedSubmit && !isPriceValid) {
+                            Text(stringResource(R.string.admin_error_price_invalid))
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.weight(1f)
@@ -520,6 +634,12 @@ fun AddGameForm(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text(stringResource(R.string.admin_field_description)) },
+                isError = hasAttemptedSubmit && !isDescriptionValid,
+                supportingText = {
+                    if (hasAttemptedSubmit && !isDescriptionValid) {
+                        Text(stringResource(R.string.admin_error_description_empty))
+                    }
+                },
                 minLines = 3,
                 maxLines = 5,
                 modifier = Modifier.fillMaxWidth()

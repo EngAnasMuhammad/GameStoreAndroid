@@ -211,9 +211,19 @@ To enable the automated release workflow in your fork or repository:
 
 ## 📜 Changelog & Milestones
 
+- **`v1.5.0`**
+  - **Instant Client-Side Catalog Search & Alphabetical Sorting**: Fast in-memory search bar filtering across title and genre with zero extra network overhead, clean empty-search recovery state (`Icons.Rounded.SearchOff`), and predictable A-Z alphabetical catalog ordering across cart updates and refreshes.
+  - **Scroll-Aware TopAppBar Search Transition**: Native 1:1 inline search bar embedded inside `LazyVerticalGrid`, paired with a zero-jank `derivedStateOf` visibility detector that smoothly animates a search action into the `TopAppBar` (`fadeIn` + `scaleIn`) with an active query badge when scrolled past. Includes crash-proof tap-to-search scroll-and-focus handling.
+  - **Gesture-Based Keyboard Dismissal**: Transitioned keyboard dismissal from indiscriminate scroll listeners to Compose `DragInteraction.Start` events, fixing landscape IME auto-dismiss glitches caused by `bringIntoView` viewport resizing.
+  - **Adaptive Featured Hero Carousel**: Compose Foundation `HorizontalPager` auto-scrolling every 5 seconds (pausing gracefully on touch gestures) with animated indicator dots, portrait full-bleed hero cards, and 2-pane landscape horizontal cards (`height = 175.dp`) to avoid stretched artwork.
+  - **Strict Pre-Upload Admin Form Validation**: Client-side validation in `AdminSheet` for title (1–100 chars), genre (max 30 chars with live counter), required description, release date regex (`YYYY-MM-DD`), and non-negative price, preventing invalid Supabase image uploads.
+  - **Admin Retry Duplicate Image Prevention**: Cached uploaded image paths across retry attempts in `GameStoreViewModel`, reusing existing uploads instead of re-compressing or re-uploading on submission error.
+  - **In-Sheet Visible Error Feedback**: Dedicated Material 3 dismissible error banner (`errorContainer` / `onErrorContainer`) displayed inside `AdminSheet` for failed game creation or key uploads.
+  - **High-Contrast Dark Gradient Scrim**: Pure black gradient overlay on game grid cards for optimal title and genre legibility across bright covers in both dark and light themes.
+  - **Internationalization (i18n & RTL)**: Localized all search, carousel, and validation strings in `values/strings.xml` and `values-ar/strings.xml` with native RTL support.
 - **`v1.4.0`**
   - **Biometric Purchase Authentication**: Integrated `androidx.biometric:biometric:1.1.0` prompt in `CartSheet` before checkout with safe `FragmentActivity` context unwrapping, secure cancellation, and fallback for unenrolled devices.
-  - **BottomSheet Upward Scroll Fix**: Implemented `consumeUpwardSheetOverscroll()` nested scroll connection across all bottom sheets (`CartSheet`, `AdminSheet`, `GameDetailsSheet`) to eliminate upward swipe scroll jitter and unintentional dismissals.
+  - **BottomSheet Upward Scroll Fix**: Implemented `consumeUpwardSheetOverscroll()` nested scroll connection across all modal bottom sheets (`CartSheet`, `AdminSheet`, `GameDetailsSheet`) to eliminate upward swipe scroll jitter and unintentional dismissals.
   - **Full-Bleed Edge-to-Edge Landscape Mode**: Resolved display cutout letterboxing and unstyled gray pillar voids on API 28+ with `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`, full-bleed root `Surface`, and decoupled component-level safe insets for `NavigationRail` and `TopAppBar` across LTR and RTL (Arabic) locales.
   - **Landscape Cover Artwork Scaling**: Applied responsive height bounds (`max = 180.dp`) and 16:9 aspect ratio constraints to game cover images in `GameDetailsSheet` to prevent portrait-to-landscape viewport clipping.
 - **`v1.3.0`**

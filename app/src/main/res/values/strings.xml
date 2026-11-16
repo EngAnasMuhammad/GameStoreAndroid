@@ -143,4 +143,23 @@
     <!-- Biometric Authentication -->
     <string name="biometric_confirm_purchase_title">Confirm Purchase</string>
     <string name="biometric_confirm_purchase_subtitle">Verify your identity to complete checkout</string>
+
+    <!-- Store Search & Featured Carousel -->
+    <string name="store_search_placeholder">Search games by title or genre...</string>
+    <string name="store_search_content_description">Search</string>
+    <string name="store_search_topbar_action">Search Games</string>
+    <string name="store_clear_search">Clear search</string>
+    <string name="store_featured_badge">Featured</string>
+    <string name="store_empty_search_title">No Games Found</string>
+    <string name="store_empty_search_desc">No games match \"%1$s\". Check your spelling or try another genre.</string>
+    <string name="store_action_clear_search">Clear Search</string>
+    <string name="store_view_details">View Details</string>
+
+    <!-- Admin Form Validations -->
+    <string name="admin_error_title_empty">Title is required</string>
+    <string name="admin_error_title_length">Title must be 100 characters or less</string>
+    <string name="admin_error_genre_empty">Genre is required</string>
+    <string name="admin_error_genre_length">Genre must not exceed 30 characters</string>
+    <string name="admin_error_description_empty">Description is required</string>
+    <string name="admin_error_price_invalid">Enter a valid non-negative price (e.g. 59.99)</string>
 </resources>
