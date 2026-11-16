@@ -139,4 +139,8 @@
     <!-- Demo Disclaimer -->
     <string name="demo_disclaimer_banner">Demo Storefront — Keys are mock activation codes generated for showcase purposes. No real payment or purchase takes place.</string>
     <string name="cart_simulated_checkout_caption">Simulated checkout • No real charges</string>
+
+    <!-- Biometric Authentication -->
+    <string name="biometric_confirm_purchase_title">Confirm Purchase</string>
+    <string name="biometric_confirm_purchase_subtitle">Verify your identity to complete checkout</string>
 </resources>

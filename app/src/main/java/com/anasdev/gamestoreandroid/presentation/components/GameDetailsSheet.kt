@@ -14,8 +14,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -42,6 +42,7 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import com.anasdev.gamestoreandroid.util.consumeUpwardSheetOverscroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -348,44 +349,54 @@ fun GameDetailsSheet(
         sheetState = sheetState,
         sheetMaxWidth = if (isLandscape) 820.dp else BottomSheetDefaults.SheetMaxWidth
     ) {
-        if (isLandscape) {
-            // Two-Pane Landscape Layout: Left Artwork (40%) + Right Scrollable Details (60%)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(bottom = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                Box(
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .consumeUpwardSheetOverscroll()
+        ) {
+            if (isLandscape) {
+                // Two-Pane Landscape Layout: Left Artwork (38%) + Right Scrollable Details (62%)
+                Row(
                     modifier = Modifier
-                        .weight(0.40f)
-                        .fillMaxHeight(),
-                    contentAlignment = Alignment.TopCenter
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    coverArtwork(Modifier.fillMaxWidth(), 0.85f)
-                }
+                    Box(
+                        modifier = Modifier
+                            .weight(0.38f),
+                        contentAlignment = Alignment.TopCenter
+                    ) {
+                        coverArtwork(
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 180.dp),
+                            16f / 9f
+                        )
+                    }
 
-                Box(
+                    Box(
+                        modifier = Modifier
+                            .weight(0.62f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        detailsPaneContent()
+                    }
+                }
+            } else {
+                // Single-Column Portrait Layout
+                Column(
                     modifier = Modifier
-                        .weight(0.60f)
+                        .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp)
+                        .padding(bottom = 36.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    coverArtwork(Modifier.fillMaxWidth(), 16f / 9f)
                     detailsPaneContent()
                 }
-            }
-        } else {
-            // Single-Column Portrait Layout
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 36.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                coverArtwork(Modifier.fillMaxWidth(), 16f / 9f)
-                detailsPaneContent()
             }
         }
     }

@@ -140,4 +140,8 @@
     <!-- Demo Disclaimer -->
     <string name="demo_disclaimer_banner">متجر تجريبي — المفاتيح المعروضة هي رموز تفعيل تجريبية لأغراض العرض فقط. لا تتم أي مدفوعات أو عمليات شراء حقيقية.</string>
     <string name="cart_simulated_checkout_caption">دفع تجريبي محاكى • لا توجد أي رسوم حقيقية</string>
+
+    <!-- Biometric Authentication -->
+    <string name="biometric_confirm_purchase_title">تأكيد عملية الشراء</string>
+    <string name="biometric_confirm_purchase_subtitle">تحقق من هويتك لإتمام عملية الشراء</string>
 </resources>

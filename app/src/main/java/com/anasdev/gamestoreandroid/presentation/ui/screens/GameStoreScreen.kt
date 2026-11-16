@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.Settings
@@ -34,6 +33,7 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -101,6 +101,11 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
 
     val topBarContent: @Composable () -> Unit = {
         TopAppBar(
+            windowInsets = if (isLandscape) {
+                WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.End)
+            } else {
+                TopAppBarDefaults.windowInsets
+            },
             scrollBehavior = scrollBehavior,
             title = {
                 Text(
@@ -204,20 +209,17 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
         }
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .then(
-                if (isLandscape) {
-                    Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
-                } else {
-                    Modifier
-                }
-            )
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        if (isLandscape) {
-            NavigationRail(
-                header = {
+        Row(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            if (isLandscape) {
+                NavigationRail(
+                    windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start),
+                    header = {
                     Spacer(modifier = Modifier.height(8.dp))
                     Icon(
                         imageVector = Icons.Rounded.SportsEsports,
@@ -329,6 +331,7 @@ fun GameStoreScreen(viewModel: GameStoreViewModel) {
             }
         ) { innerPadding ->
             screenBody(innerPadding)
+        }
         }
     }
 

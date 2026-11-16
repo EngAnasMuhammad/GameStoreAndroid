@@ -211,6 +211,11 @@ To enable the automated release workflow in your fork or repository:
 
 ## 📜 Changelog & Milestones
 
+- **`v1.4.0`**
+  - **Biometric Purchase Authentication**: Integrated `androidx.biometric:biometric:1.1.0` prompt in `CartSheet` before checkout with safe `FragmentActivity` context unwrapping, secure cancellation, and fallback for unenrolled devices.
+  - **BottomSheet Upward Scroll Fix**: Implemented `consumeUpwardSheetOverscroll()` nested scroll connection across all bottom sheets (`CartSheet`, `AdminSheet`, `GameDetailsSheet`) to eliminate upward swipe scroll jitter and unintentional dismissals.
+  - **Full-Bleed Edge-to-Edge Landscape Mode**: Resolved display cutout letterboxing and unstyled gray pillar voids on API 28+ with `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`, full-bleed root `Surface`, and decoupled component-level safe insets for `NavigationRail` and `TopAppBar` across LTR and RTL (Arabic) locales.
+  - **Landscape Cover Artwork Scaling**: Applied responsive height bounds (`max = 180.dp`) and 16:9 aspect ratio constraints to game cover images in `GameDetailsSheet` to prevent portrait-to-landscape viewport clipping.
 - **`v1.3.0`**
   - **Adaptive Landscape Experience**: Integrated Material 3 `NavigationRail` for landscape mode, recovering vertical space with safe-drawing cutout handling, and two-pane horizontal split sheets for Game Details, Cart, and Admin Dashboard.
   - **Screen Rotation State Preservation**: Audit and conversion of active navigation, open sheets, selected game IDs, and typed form inputs to `rememberSaveable` to survive orientation changes seamlessly.

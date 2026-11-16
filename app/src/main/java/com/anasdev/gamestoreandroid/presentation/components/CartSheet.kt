@@ -45,12 +45,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.anasdev.gamestoreandroid.R
 import com.anasdev.gamestoreandroid.domain.model.LockedCartItemResponse
+import com.anasdev.gamestoreandroid.util.BiometricHelper
+import com.anasdev.gamestoreandroid.util.consumeUpwardSheetOverscroll
+import com.anasdev.gamestoreandroid.util.findFragmentActivity
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
@@ -113,9 +117,29 @@ fun CartSheet(
     onLoginClick: () -> Unit
 ) {
     val configuration = LocalConfiguration.current
+    val context = LocalContext.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val totalAmount = cartItems.sumOf { it.price }
+
+    val confirmPurchaseTitle = stringResource(R.string.biometric_confirm_purchase_title)
+    val confirmPurchaseSubtitle = stringResource(R.string.biometric_confirm_purchase_subtitle)
+    val cancelText = stringResource(R.string.action_cancel)
+
+    val handleCheckoutWithBiometrics: () -> Unit = {
+        val activity = context.findFragmentActivity()
+        if (activity != null && BiometricHelper.isBiometricAvailable(activity)) {
+            BiometricHelper.authenticate(
+                activity = activity,
+                title = confirmPurchaseTitle,
+                subtitle = confirmPurchaseSubtitle,
+                negativeButtonText = cancelText,
+                onSuccess = { onCheckout() },
+            )
+        } else {
+            onCheckout()
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -123,11 +147,16 @@ fun CartSheet(
         dragHandle = null,
         sheetMaxWidth = if (isLandscape) 820.dp else BottomSheetDefaults.SheetMaxWidth
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp)
+                .consumeUpwardSheetOverscroll()
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
             // Header Section
             Row(
                 modifier = Modifier
@@ -346,7 +375,7 @@ fun CartSheet(
                                     }
 
                                     Button(
-                                        onClick = onCheckout,
+                                        onClick = handleCheckoutWithBiometrics,
                                         enabled = !isLoading,
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(
@@ -470,7 +499,7 @@ fun CartSheet(
                                 }
 
                                 Button(
-                                    onClick = onCheckout,
+                                    onClick = handleCheckoutWithBiometrics,
                                     enabled = !isLoading,
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(
@@ -513,6 +542,7 @@ fun CartSheet(
             }
         }
     }
+}
 }
 
 @Composable
