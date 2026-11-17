@@ -16,9 +16,7 @@
 
 ## 🎬 Demo
 
-<!-- Replace PASTE_GITHUB_VIDEO_ASSET_URL_HERE with your uploaded GitHub MP4 asset URL -->
-
----
+[Watch Demo](https://github.com/user-attachments/assets/e12deaa8-a665-402c-a394-aa769538f25b)
 
 ## 📱 Screenshots Gallery
 
